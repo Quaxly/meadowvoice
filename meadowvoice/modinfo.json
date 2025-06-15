@@ -1,0 +1,10 @@
+{
+  "id": "meadowvoice",
+  "name": "Meadow Voice",
+  "version": "1.0.0",
+  "authors": "@None",
+  "description": "Let your voice be heard.",
+  "requirements": ["henpemaz_rainmeadow"],
+  "requirements_names": ["Rain Meadow"],
+  "checksum_override_version": true
+}
