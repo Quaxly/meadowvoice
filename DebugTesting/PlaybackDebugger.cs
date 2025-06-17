@@ -7,13 +7,12 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace meadowvoice
 {
-    internal class VoiceEmitter
+    internal class PlaybackDebugger
     {
-        public static ConditionalWeakTable<Creature, VoiceEmitter> map = new();
+        public static ConditionalWeakTable<Creature, PlaybackDebugger> map = new();
 
         public Creature owner;
         public OnlineCreature ownerEntity;
@@ -36,8 +35,8 @@ namespace meadowvoice
         private int streamIndex;
         private int streamPosition;
 
-        private ulong packetId;
-        public VoiceEmitter(Creature owner, OnlineCreature ownerEntity)
+        public ulong queueIndex;
+        public PlaybackDebugger(Creature owner, OnlineCreature ownerEntity)
         {
             this.owner = owner;
             this.ownerEntity = ownerEntity;
@@ -57,44 +56,42 @@ namespace meadowvoice
             // prevent the pitch from getting set incorrectly
             if (this.currentSoundObject != null)
             {
-                this.currentSoundObject.soundData.pitch = this.pitch;
-                this.currentSoundObject.audioSource.pitch = this.pitch;
-                if (this.owner != null && this.currentSoundObject is VirtualMicrophone.ObjectSound os && os.controller is ChunkSoundEmitter chunkSoundEmitter)
+                this.currentSoundObject.soundData.pitch = 1f;
+                this.currentSoundObject.audioSource.pitch = 1f;
+            }
+            if (SteamVoiceDebug.PLAYBACK)
+            {
+                if (buffering)
                 {
-                    chunkSoundEmitter.chunk = this.owner.mainBodyChunk;
+                    buffering = this.streamingReadQueue.Count < packetBuffer;
                 }
-            }
-            if (buffering)
-            {
-                buffering = this.streamingReadQueue.Count < packetBuffer;
-            }
-            else
-            {
-                RainMeadow.RainMeadow.Debug("Processing next sample");
-                VirtualMicrophone mic = game.cameras[0].virtualMicrophone;
+                else
+                {
+                    var game = ownerEntity.apo.world.game;
+                    VirtualMicrophone mic = game.cameras[0].virtualMicrophone;
 
-                for (int i = 0; i < game.cameras.Length; i++)
-                {
-                    if (game.cameras[i].room == owner.room)
+                    for (int i = 0; i < game.cameras.Length; i++)
                     {
-                        mic = game.cameras[i].virtualMicrophone;
-                        break;
+                        if (game.cameras[i].room == ownerEntity.realizedCreature.room)
+                        {
+                            mic = game.cameras[i].virtualMicrophone;
+                            break;
+                        }
                     }
-                }
-                if (this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller == null || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller.slatedForDeletetion)
-                {
-                    if (this.currentSoundObject != null)
+                    if (this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion)
                     {
-                        this.currentSoundObject.Destroy();
-                        this.currentSoundObject = null;
+                        if (this.currentSoundObject != null)
+                        {
+                            this.currentSoundObject.Destroy();
+                            this.currentSoundObject = null;
+                        }
+                        ChunkSoundEmitter controller = new ChunkSoundEmitter(ownerEntity.realizedCreature.mainBodyChunk, 1f, 1f);
+                        SoundLoader.SoundData soundData = mic.GetSoundData(SoundID.Slugcat_Stash_Spear_On_Back, -1);
+                        this.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, 1f, 1f, false);
+                        this.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
+                        mic.soundObjects.Add(currentSoundObject);
+                        currentSoundObject.Play();
                     }
-                    ChunkSoundEmitter controller = new ChunkSoundEmitter(owner.mainBodyChunk, this.volume, this.pitch);
-                    controller.requireActiveUpkeep = false;
-                    SoundLoader.SoundData soundData = mic.GetSoundData(SoundID.Slugcat_Stash_Spear_On_Back, -1);
-                    this.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, this.volume, this.pitch, false);
-                    this.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
-                    mic.soundObjects.Add(currentSoundObject);
-                    currentSoundObject.Play();
                 }
             }
         }
@@ -201,8 +198,8 @@ namespace meadowvoice
                     sampleData[i] = value * 15f / short.MaxValue;
                 }
 
-                this.streamingReadQueue.Add(packetId, sampleData);
-                packetId++;
+                this.streamingReadQueue.Add(queueIndex, sampleData);
+                queueIndex++;
 
                 if (SteamVoiceDebug.DEBUG)
                 {
@@ -215,7 +212,8 @@ namespace meadowvoice
                     }
                     SteamVoiceDebug.recievingInfo.Add(ownerEntity.owner.id.name + " - " + sampleData.Length);
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 RainMeadow.RainMeadow.Debug("There was an error decoding voice data");
                 RainMeadow.RainMeadow.Debug(e);

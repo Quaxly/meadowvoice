@@ -20,7 +20,8 @@ namespace meadowvoice
 
         public bool recording;
 
-        public const uint sampleRate = 11025;
+        //public const uint sampleRate = 11025;
+        public const uint sampleRate = 44100;
         public const uint bufferSize = 22050;
 
         public RPCEvent lastEvent;

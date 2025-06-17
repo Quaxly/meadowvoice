@@ -32,8 +32,12 @@ namespace meadowvoice
             Tabs = new OpTab[1];
             int tabIndex = -1;
             AddTab(ref tabIndex, "Meadow Voice");
+
             AddCheckBox(pushToTalk);
             DrawCheckBoxes(ref Tabs[tabIndex]);
+
+            AddNewLine();
+            
             DrawKeybinders(muteKey, ref Tabs[tabIndex]);
         }
     }
