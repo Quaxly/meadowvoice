@@ -3,7 +3,7 @@ using System.Linq;
 using Menu.Remix.MixedUI;
 using UnityEngine;
 
-namespace MeadowVoice;
+namespace meadowvoice;
 
 // Based on the options script from SBCameraScroll by SchuhBaum: https://github.com/SchuhBaum/SBCameraScroll/blob/Rain-World-v1.9/SourceCode/MainModOptions.cs
 public abstract class OptionsTemplate : OptionInterface

@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace MeadowVoice
+namespace meadowvoice
 {
     internal static class Hooks
     {
@@ -36,6 +36,10 @@ namespace MeadowVoice
                 if (VoiceEmitter.map.TryGetValue(self, out var emitter))
                 {
                     emitter.Update();
+                }
+                if (PlaybackDebugger.map.TryGetValue(self, out var pbd))
+                {
+                    pbd.Update();
                 }
             }
         }
@@ -70,6 +74,13 @@ namespace MeadowVoice
                                 SteamVoiceChat.myVoiceChat.ChangeOwningEntity(oc);
                             }
                         }
+                        if (SteamVoiceDebug.PLAYBACK)
+                        {
+                            if (!PlaybackDebugger.map.TryGetValue(oc.realizedCreature, out _))
+                            {
+                                new PlaybackDebugger(oc.realizedCreature, oc);
+                            }
+                        }
                     }
                     else
                     {
@@ -91,10 +102,6 @@ namespace MeadowVoice
             }
             SteamVoiceDebug.Update(self);
             SteamVoiceChat.myVoiceChat.VoiceUpdate();
-            if (SteamVoiceDebug.DEBUG && Input.GetKey(KeyCode.PageDown))
-            {
-                SteamVoiceChat.myVoiceChat.TestTone();
-            }
             if (ModOptions.pushToTalk.Value)
             {
                 if (Input.GetKey(ModOptions.muteKey.Value))

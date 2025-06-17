@@ -8,11 +8,12 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace MeadowVoice
+namespace meadowvoice
 {
-    internal class SteamVoiceChat
+    internal class SteamVoiceChat : IUseCustomPackets
     {
         public static SteamVoiceChat myVoiceChat;
+        public static AudioSource playbackClip;
 
         public OnlinePlayer owner;
         public OnlineCreature ownerEntity;
@@ -25,10 +26,16 @@ namespace MeadowVoice
         public RPCEvent lastEvent;
         public uint index;
 
+        public ushort debugIndex;
+
+        public bool Active => true;
+
         public SteamVoiceChat(OnlinePlayer owner, OnlineCreature ownerEntity)
         {
             this.owner = owner;
             this.ownerEntity = ownerEntity;
+
+            CustomManager.Subscribe("meadowvoice", this);
         }
 
         public void ChangeOwningEntity(OnlineCreature newOwner)
@@ -65,13 +72,20 @@ namespace MeadowVoice
                 if (SteamUser.GetAvailableVoice(out bytesAvailableCompressed) == EVoiceResult.k_EVoiceResultOK)
                 {
                     byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
-                    if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed)
+                    if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null)
                     {
                         foreach (var op in ownerEntity.roomSession.participants)
                         {
                             if (!op.isMe)
                             {
-                                op.InvokeRPC(VoiceRPC.SendVoice, voiceDataBuffer, (uint)voiceDataBuffer.Length);
+                                SendVoice(op, voiceDataBuffer, (ushort)bytesWritten);
+                            }
+                            else
+                            {
+                                if (SteamVoiceDebug.PLAYBACK && PlaybackDebugger.map.TryGetValue(ownerEntity.realizedCreature, out var pbd))
+                                {
+                                    pbd.RecieveAudio(voiceDataBuffer, (uint)voiceDataBuffer.Length);
+                                }
                             }
                         }
                     }
@@ -79,34 +93,32 @@ namespace MeadowVoice
             }
         }
 
-        public void TestTone()
+        public void SendVoice(OnlinePlayer op, byte[] voiceDataBuffer, ushort bytesWritten)
         {
-            var tone = GenerateSineWave(440, 500);
-            var testBuffer = new byte[tone.Length * 2];
-            Buffer.BlockCopy(tone, 0, testBuffer, 0, testBuffer.Length);
-            foreach (var op in ownerEntity.roomSession.participants)
-            {
-                if (!op.isMe)
-                {
-                    op.InvokeRPC(VoiceRPC.SendVoice, testBuffer, (uint)testBuffer.Length);
-                }
-            }
+            CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, bytesWritten, NetIO.SendType.Unreliable);
+            //OnlineManager.netIO.SendP2P(op, new CustomPacket("meadowvoice", voiceDataBuffer, (ushort)voiceDataBuffer.Length), NetIO.SendType.Unreliable);
         }
 
-        private short[] GenerateSineWave(int frequencyHz, int durationMs, int sampleRate = 11025)
+        public void ProcessPacket(OnlinePlayer fromPlayer, CustomPacket packet)
         {
-            int sampleCount = (durationMs * sampleRate) / 1000;
-            short[] buffer = new short[sampleCount];
-
-            double amplitude = 32760; // Max amplitude for 16-bit audio
-            double increment = (2 * Mathf.PI * frequencyHz) / sampleRate;
-
-            for (int i = 0; i < sampleCount; i++)
+            if (packet.key != "meadowvoice")
             {
-                buffer[i] = (short)(amplitude * Mathf.Sin((float)(i * increment)));
+                return;
             }
-
-            return buffer;
+            foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
+            {
+                if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
+                if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
+                {
+                    if (opo.owner.inLobbyId == fromPlayer.inLobbyId)
+                    {
+                        if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
+                        {
+                            emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using meadowvoice;
-using MeadowVoice;
-using RainMeadow;
+﻿using RainMeadow;
 using Steamworks;
 using System;
 using System.Collections.Generic;
@@ -11,7 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Profiling;
 
-namespace MeadowVoice
+namespace meadowvoice
 {
     internal class VoiceEmitter
     {
@@ -22,7 +20,7 @@ namespace MeadowVoice
 
         public RainWorldGame game;
 
-        public SortedList<ushort, float[]> streamingReadQueue = new();
+        public SortedList<ulong, float[]> streamingReadQueue = new();
 
         public VirtualMicrophone.SoundObject currentSoundObject;
 
@@ -33,11 +31,12 @@ namespace MeadowVoice
 
         private bool buffering = true;
         private float[] currentStream;
-        private ushort currentIndex;
-        private ushort lastIndex;
+        private ulong currentIndex;
+        private ulong lastIndex;
         private int streamIndex;
         private int streamPosition;
 
+        private ulong packetId;
         public VoiceEmitter(Creature owner, OnlineCreature ownerEntity)
         {
             this.owner = owner;
@@ -55,6 +54,12 @@ namespace MeadowVoice
 
         public void Update()
         {
+            // prevent the pitch from getting set incorrectly
+            if (this.currentSoundObject != null)
+            {
+                this.currentSoundObject.soundData.pitch = this.pitch;
+                this.currentSoundObject.audioSource.pitch = this.pitch;
+            }
             if (buffering)
             {
                 buffering = this.streamingReadQueue.Count < packetBuffer;
@@ -72,7 +77,7 @@ namespace MeadowVoice
                         break;
                     }
                 }
-                if (this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion)
+                if (this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller == null || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller.slatedForDeletetion)
                 {
                     if (this.currentSoundObject != null)
                     {
@@ -80,6 +85,7 @@ namespace MeadowVoice
                         this.currentSoundObject = null;
                     }
                     ChunkSoundEmitter controller = new ChunkSoundEmitter(owner.mainBodyChunk, this.volume, this.pitch);
+                    controller.requireActiveUpkeep = false;
                     SoundLoader.SoundData soundData = mic.GetSoundData(SoundID.Slugcat_Stash_Spear_On_Back, -1);
                     this.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, this.volume, this.pitch, false);
                     this.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", 11025 * 10, 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
@@ -162,7 +168,7 @@ namespace MeadowVoice
             streamIndex = 0;
         }
 
-        public void RecieveAudio(byte[] voiceDataBuffer, uint bytesRead, ushort eventId)
+        public void RecieveAudio(byte[] voiceDataBuffer, uint bytesRead)
         {
             try
             {
@@ -191,7 +197,8 @@ namespace MeadowVoice
                     sampleData[i] = value * 15f / short.MaxValue;
                 }
 
-                this.streamingReadQueue.Add(eventId, sampleData);
+                this.streamingReadQueue.Add(packetId, sampleData);
+                packetId++;
 
                 if (SteamVoiceDebug.DEBUG)
                 {
