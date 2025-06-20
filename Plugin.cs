@@ -26,8 +26,12 @@ namespace meadowvoice
             {
                 if (IsInit) return;
 
+                Enums.Init();
                 Hooks.Apply();
                 ModOptions.Register();
+
+                //Crypto.secretHandler = new();
+                //CustomManager.Subscribe("meadowvoicehs", Crypto.secretHandler);
 
                 IsInit = true;
             }

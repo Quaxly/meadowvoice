@@ -130,10 +130,8 @@ namespace meadowvoice
                         sample = currentStream[streamIndex];
                         streamIndex++;
 
-                        // mark down the last packet that was played so that we have an idea of which incoming packets are obsolete.
                         lastIndex = currentIndex;
 
-                        // if we've reached the end of this packet, grab the next one.
                         if (streamIndex >= currentStream.Length)
                         {
                             Dequeue();

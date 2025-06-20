@@ -19,15 +19,30 @@ namespace meadowvoice
         public OnlineCreature ownerEntity;
 
         public RainWorldGame game;
+        public Room room;
 
         public SortedList<ulong, float[]> streamingReadQueue = new();
 
         public VirtualMicrophone.SoundObject currentSoundObject;
+        public ChunkSoundEmitter controller;
 
+        public float Volume
+        {
+            get
+            {
+                return this.volume;
+            }
+            set
+            {
+                this.volume = value;
+                if (this.controller != null)
+                {
+                    this.controller.volume = value;
+                }
+            }
+        }
         public float volume = 1.0f;
         public float pitch = 1.0f;
-
-        private int packetBuffer = 10;
 
         private bool buffering = true;
         private float[] currentStream;
@@ -59,14 +74,26 @@ namespace meadowvoice
             {
                 this.currentSoundObject.soundData.pitch = this.pitch;
                 this.currentSoundObject.audioSource.pitch = this.pitch;
-                if (this.owner != null && this.currentSoundObject is VirtualMicrophone.ObjectSound os && os.controller is ChunkSoundEmitter chunkSoundEmitter)
+                if (this.owner != null)
                 {
-                    chunkSoundEmitter.chunk = this.owner.mainBodyChunk;
+                    controller.chunk = this.owner.mainBodyChunk;
                 }
+            }
+            if (this.owner.room != null)
+            {
+                this.room = this.owner.room;
+            }
+            if (this.controller != null && this.controller.room != this.room)
+            {
+                this.controller.Destroy();
+            }
+            if (this.controller != null && this.controller.slatedForDeletetion)
+            {
+                this.controller = null;
             }
             if (buffering)
             {
-                buffering = this.streamingReadQueue.Count < packetBuffer;
+                buffering = this.streamingReadQueue.Count < ModOptions.packetBuffer.Value;
             }
             else
             {
@@ -75,26 +102,34 @@ namespace meadowvoice
 
                 for (int i = 0; i < game.cameras.Length; i++)
                 {
-                    if (game.cameras[i].room == owner.room)
+                    if (game.cameras[i].room == this.room)
                     {
                         mic = game.cameras[i].virtualMicrophone;
                         break;
                     }
                 }
-                if (this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller == null || (this.currentSoundObject as VirtualMicrophone.ObjectSound).controller.slatedForDeletetion)
+                if (!this.owner.dead && this.currentSoundObject == null || this.currentSoundObject.slatedForDeletion || this.controller == null)
                 {
                     if (this.currentSoundObject != null)
                     {
                         this.currentSoundObject.Destroy();
                         this.currentSoundObject = null;
                     }
-                    ChunkSoundEmitter controller = new ChunkSoundEmitter(owner.mainBodyChunk, this.volume, this.pitch);
-                    controller.requireActiveUpkeep = false;
+                    this.controller = new ChunkSoundEmitter(this.owner.mainBodyChunk, this.volume, this.pitch);
+                    this.controller.requireActiveUpkeep = false;
+                    this.room.AddObject(this.controller);
                     SoundLoader.SoundData soundData = mic.GetSoundData(SoundID.Slugcat_Stash_Spear_On_Back, -1);
-                    this.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, this.volume, this.pitch, false);
+                    this.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, this.controller, this.volume, this.pitch, false);
                     this.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
                     mic.soundObjects.Add(currentSoundObject);
-                    currentSoundObject.Play();
+                    this.currentSoundObject.Play();
+                }
+                if (this.owner.dead)
+                {
+                    this.currentSoundObject.Destroy();
+                    this.controller.Destroy();
+                    this.currentSoundObject = null;
+                    this.controller = null;
                 }
             }
         }
@@ -133,17 +168,13 @@ namespace meadowvoice
                         sample = currentStream[streamIndex];
                         streamIndex++;
 
-                        // mark down the last packet that was played so that we have an idea of which incoming packets are obsolete.
                         lastIndex = currentIndex;
 
-                        // if we've reached the end of this packet, grab the next one.
                         if (streamIndex >= currentStream.Length)
                         {
                             Dequeue();
                         }
                     }
-
-                    // write the sample to the AudioClip & update it's position
                     data[count] = sample;
                     streamPosition++;
                     count++;
@@ -176,8 +207,11 @@ namespace meadowvoice
         {
             try
             {
-                RainMeadow.RainMeadow.Debug($"vdb leng: {voiceDataBuffer.Length}");
-                RainMeadow.RainMeadow.Debug($"byRd: {bytesRead}");
+                if (SteamVoiceDebug.DEBUG)
+                {
+                    RainMeadow.RainMeadow.Debug($"vdb leng: {voiceDataBuffer.Length}");
+                    RainMeadow.RainMeadow.Debug($"byRd: {bytesRead}");
+                }
                 int bufferSize = (int)SteamVoiceChat.bufferSize;
                 byte[] decompressedBuffer = null;
                 var result = EVoiceResult.k_EVoiceResultNoData;

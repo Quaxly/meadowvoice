@@ -3,6 +3,7 @@ using RainMeadow;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -36,6 +37,20 @@ namespace meadowvoice
                 if (VoiceEmitter.map.TryGetValue(self, out var emitter))
                 {
                     emitter.Update();
+                }
+                else
+                {
+                    foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
+                    {
+                        if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
+                        if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
+                        {
+                            if (ac.realizedCreature == self && !VoiceEmitter.map.TryGetValue(self, out _))
+                            {
+                                new VoiceEmitter(self, self.abstractCreature.GetOnlineCreature());
+                            }
+                        }
+                    }
                 }
                 if (PlaybackDebugger.map.TryGetValue(self, out var pbd))
                 {

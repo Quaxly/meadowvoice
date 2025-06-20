@@ -18,6 +18,10 @@ namespace meadowvoice
         public static Configurable<KeyCode> muteKey { get; } = Instance.config.Bind(nameof(muteKey), 
             KeyCode.M, new ConfigurableInfo("Mute/Unmute or Push to Talk key.", null, "", "Mute Key"));
 
+        // Advanced
+        public static Configurable<int> packetBuffer { get; } = Instance.config.Bind(nameof(packetBuffer),
+            3, new ConfigurableInfo("Leave this at 3.", null, "", "Packet Buffer"));
+
         public static void Register()
         {
             if (MachineConnector.GetRegisteredOI("meadowvoice") != Instance)
