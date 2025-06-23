@@ -14,12 +14,15 @@ namespace meadowvoice
     {
         public static SteamVoiceChat myVoiceChat;
         public static AudioSource playbackClip;
+        public static List<MeadowPlayerId> mutedPlayers = new();
 
         public OnlinePlayer owner;
         public OnlineCreature ownerEntity;
         public RainWorldGame game;
 
         public bool recording;
+        public bool hasVoice;
+        private int voiceTimer;
 
         //public const uint sampleRate = 11025;
         public const uint sampleRate = 48000;
@@ -46,12 +49,23 @@ namespace meadowvoice
             this.ownerEntity = newOwner;
         }
 
+        public void Mute(MeadowPlayerId id)
+        {
+            mutedPlayers.Add(id);
+            game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_OTHERMUTE, 0f, 0.35f, 1f, 1);
+        }
+        public void Unmute(MeadowPlayerId id)
+        {
+            mutedPlayers.RemoveAll(m => m == id);
+            game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_UNMUTE, 0f, 0.35f, 1f, 1);
+        }
+
         public void BeginStream()
         {
             if (!recording)
             {
                 SteamUser.StartVoiceRecording();
-                game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_UNMUTE, 0f, 0.2f, 1f, 1);
+                game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_UNMUTE, 0f, 0.35f, 1f, 1);
                 recording = true;
             }
         }
@@ -60,7 +74,7 @@ namespace meadowvoice
             if (recording)
             {
                 SteamUser.StopVoiceRecording();
-                game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_MUTE, 0f, 0.2f, 1f, 1);
+                game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_MUTE, 0f, 0.35f, 1f, 1);
                 recording = false;
             }
         }
@@ -78,6 +92,8 @@ namespace meadowvoice
             uint bytesAvailableCompressed;
             if (SteamUser.GetAvailableVoice(out bytesAvailableCompressed) == EVoiceResult.k_EVoiceResultOK)
             {
+                hasVoice = true;
+                voiceTimer = 0;
                 byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
                 if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
                 {
@@ -95,6 +111,15 @@ namespace meadowvoice
                             }
                         }
                     }
+                }
+            }
+            else
+            {
+                if (!hasVoice) return;
+                voiceTimer++;
+                if (voiceTimer > 30)
+                {
+                    hasVoice = false;
                 }
             }
         }
@@ -126,6 +151,10 @@ namespace meadowvoice
             {
                 return;
             }
+            if (mutedPlayers.Contains(fromPlayer.id))
+            {
+                return;
+            }
             try
             {
                 //byte[] decryptedData = Crypto.Decrypt(Crypto.GetMyPublicKey, packet.data);
@@ -144,9 +173,10 @@ namespace meadowvoice
                         }
                     }
                 }
-            } catch (Exception ex)
+            } 
+            catch (Exception ex)
             {
-                RainMeadow.RainMeadow.Error($"There was an error decoding voice data for {fromPlayer.id.name}");
+                RainMeadow.RainMeadow.Error($"There was an error retrieving {fromPlayer.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
         }

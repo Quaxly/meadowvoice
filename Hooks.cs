@@ -1,7 +1,11 @@
-﻿using meadowvoice;
+﻿using AssetBundles;
+using meadowvoice;
+using meadowvoice.HUD;
 using RainMeadow;
+using RWCustom;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -19,6 +23,8 @@ namespace meadowvoice
             On.RainWorldGame.ShutDownProcess += RainWorldGame_ShutDownProcess;
             On.AbstractCreature.Realize += AbstractCreature_Realize;
             On.Creature.Update += Creature_Update;
+            On.HUD.HUD.InitSinglePlayerHud += HUD_InitSinglePlayerHud;
+            On.HUD.HUD.InitMultiplayerHud += HUD_InitMultiplayerHud;
         }
 
         public static void Remove()
@@ -27,6 +33,26 @@ namespace meadowvoice
             On.RainWorldGame.ShutDownProcess -= RainWorldGame_ShutDownProcess;
             On.AbstractCreature.Realize -= AbstractCreature_Realize;
             On.Creature.Update -= Creature_Update;
+            On.HUD.HUD.InitSinglePlayerHud -= HUD_InitSinglePlayerHud;
+            On.HUD.HUD.InitMultiplayerHud -= HUD_InitMultiplayerHud;
+        }
+
+        private static void HUD_InitSinglePlayerHud(On.HUD.HUD.orig_InitSinglePlayerHud orig, global::HUD.HUD self, RoomCamera cam)
+        {
+            orig(self, cam);
+            if (RainMeadow.RainMeadow.isStoryMode(out var gameMode))
+            {
+                self.AddPart(new VoiceHud(self, cam));
+            }
+        }
+
+        private static void HUD_InitMultiplayerHud(On.HUD.HUD.orig_InitMultiplayerHud orig, global::HUD.HUD self, ArenaGameSession session)
+        {
+            orig(self, session);
+            if (RainMeadow.RainMeadow.isArenaMode(out var gameMode))
+            {
+                self.AddPart(new VoiceHud(self, session.game.cameras[0]));
+            }
         }
 
         private static void Creature_Update(On.Creature.orig_Update orig, Creature self, bool eu)
@@ -37,20 +63,6 @@ namespace meadowvoice
                 if (VoiceEmitter.map.TryGetValue(self, out var emitter))
                 {
                     emitter.Update();
-                }
-                else
-                {
-                    foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
-                    {
-                        if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
-                        if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
-                        {
-                            if (ac.realizedCreature == self && !VoiceEmitter.map.TryGetValue(self, out _))
-                            {
-                                new VoiceEmitter(self, self.abstractCreature.GetOnlineCreature());
-                            }
-                        }
-                    }
                 }
                 if (PlaybackDebugger.map.TryGetValue(self, out var pbd))
                 {
@@ -99,9 +111,13 @@ namespace meadowvoice
                     }
                     else
                     {
-                        if (!VoiceEmitter.map.TryGetValue(oc.realizedCreature, out _))
+                        if (!VoiceEmitter.map.TryGetValue(oc.realizedCreature, out var emitter))
                         {
                             new VoiceEmitter(oc.realizedCreature, oc);
+                        }
+                        else
+                        {
+                            emitter.ChangeOwningCreature(oc.realizedCreature);
                         }
                     }
                 }

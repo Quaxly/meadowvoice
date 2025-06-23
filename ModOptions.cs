@@ -40,9 +40,14 @@ namespace meadowvoice
             AddCheckBox(pushToTalk);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
-            AddNewLine();
+            AddNewLine(2);
             
             DrawKeybinders(muteKey, ref Tabs[tabIndex]);
+
+            AddNewLine(5);
+            
+            AddTextLabel("Meadow Voice uses your default microphone.\nIf you change your default microphone you must restart for changes to take effect.", FLabelAlignment.Center);
+            DrawTextLabels(ref Tabs[tabIndex]);
         }
     }
 }

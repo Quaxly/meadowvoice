@@ -51,6 +51,12 @@ namespace meadowvoice
             }
         }
 
+        public void ChangeOwningCreature(Creature newCreature)
+        {
+            this.owner = newCreature;
+            this.ownerEntity = newCreature.abstractCreature.GetOnlineCreature();
+        }
+
         public void Update()
         {
             // prevent the pitch from getting set incorrectly

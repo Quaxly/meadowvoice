@@ -30,6 +30,8 @@ namespace meadowvoice
                 Hooks.Apply();
                 ModOptions.Register();
 
+                Futile.atlasManager.LoadAtlas("atlases/uiMeadowVoice");
+
                 //Crypto.secretHandler = new();
                 //CustomManager.Subscribe("meadowvoicehs", Crypto.secretHandler);
 

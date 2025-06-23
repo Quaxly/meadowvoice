@@ -45,6 +45,7 @@
 	<ItemGroup>
 		<None Remove=".gitattributes" />
 		<None Remove=".gitignore" />
+		<None Remove="meadowvoice.zip" />
 	</ItemGroup>
 
 	<ItemGroup>
