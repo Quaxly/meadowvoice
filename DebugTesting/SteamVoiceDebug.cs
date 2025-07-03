@@ -12,7 +12,7 @@ namespace meadowvoice
 {
     internal static class SteamVoiceDebug
     {
-        public static bool DEBUG = true;
+        public static bool DEBUG = true; // set this to false to turn off debug overlay
         public static bool PLAYBACK = false;
 
         private static FContainer overlay;

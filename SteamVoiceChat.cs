@@ -89,6 +89,7 @@ namespace meadowvoice
             {
                 return;
             }
+            // Dear Valve, pweety pwease with a chewwy on towp give us a way to select our audio input in the steam api
             uint bytesAvailableCompressed;
             if (SteamUser.GetAvailableVoice(out bytesAvailableCompressed) == EVoiceResult.k_EVoiceResultOK)
             {
@@ -126,15 +127,8 @@ namespace meadowvoice
 
         public void SendVoice(OnlinePlayer op, byte[] voiceDataBuffer, ushort bytesWritten)
         {
-            //byte[] secret = Crypto.RetrieveFromPeer(op);
-            //if (secret == null)
-            //{
-            //    return;
-            //}
             try
             {
-                //byte[] encryptedData = Crypto.Encrypt(secret, voiceDataBuffer);
-                //CustomManager.SendCustomData(op, "meadowvoice", encryptedData, (ushort)encryptedData.Length, NetIO.SendType.Unreliable);
                 CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
             } 
             catch(Exception ex)
@@ -142,7 +136,6 @@ namespace meadowvoice
                 RainMeadow.RainMeadow.Error($"There was an error encoding voice data for {op.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
-            //OnlineManager.netIO.SendP2P(op, new CustomPacket("meadowvoice", voiceDataBuffer, (ushort)voiceDataBuffer.Length), NetIO.SendType.Unreliable);
         }
 
         public void ProcessPacket(OnlinePlayer fromPlayer, CustomPacket packet)
@@ -157,7 +150,6 @@ namespace meadowvoice
             }
             try
             {
-                //byte[] decryptedData = Crypto.Decrypt(Crypto.GetMyPublicKey, packet.data);
                 foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
                 {
                     if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
@@ -167,7 +159,6 @@ namespace meadowvoice
                         {
                             if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
                             {
-                                //emitter.RecieveAudio(decryptedData, (uint)decryptedData.Length);
                                 emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
                             }
                         }

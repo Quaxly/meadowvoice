@@ -95,6 +95,12 @@ namespace meadowvoice
                 if (this.owner != null)
                 {
                     controller.chunk = this.owner.mainBodyChunk;
+                    controller.pitch = this.pitch;
+                    if (controller.currentSoundObject != null)
+                    {
+                        controller.currentSoundObject.soundData.pitch = this.pitch;
+                        controller.currentSoundObject.SetPitch = this.pitch;
+                    }
                 }
                 if (controller.room != this.room || controller.slatedForDeletetion)
                 {
