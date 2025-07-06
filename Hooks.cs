@@ -29,6 +29,7 @@ namespace meadowvoice
             detours.Add(new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), Lobby_ActivateImpl));
             detours.Add(new Hook(typeof(OnlineResource).GetMethod(nameof(OnlineResource.OnPlayerDisconnect)), OnlineResource_OnPlayerDisconnect));
             detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.ResourceFromIdentifier)), OnlineManager_ResourceFromIdentifier));
+            detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.LeaveLobby)), OnlineManager_LeaveLobby));
             detours.Add(new ILHook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.Update)), OnlineManager_Update));
         }
 
