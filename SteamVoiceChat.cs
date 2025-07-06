@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace meadowvoice
 {
-    internal class SteamVoiceChat : IUseCustomPackets
+    internal class SteamVoiceChat 
     {
         public static SteamVoiceChat myVoiceChat;
         public static AudioSource playbackClip;
@@ -40,8 +40,6 @@ namespace meadowvoice
             this.owner = owner;
             this.ownerEntity = ownerEntity;
             this.game = ownerEntity.abstractCreature.world.game;
-
-            CustomManager.Subscribe("meadowvoice", this);
         }
 
         public void ChangeOwningEntity(OnlineCreature newOwner)
@@ -98,7 +96,7 @@ namespace meadowvoice
                 byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
                 if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
                 {
-                    foreach (var op in roomSession.participants)
+                    foreach (var op in VoiceChatSession.instance.participants)
                     {
                         if (!op.isMe)
                         {
@@ -129,7 +127,11 @@ namespace meadowvoice
         {
             try
             {
-                CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
+                if (VoiceChatSession.instance.participants.Contains(op))
+                {
+                    op.QueueChunk(VoiceChatSession.instance, false, new ArraySegment<byte>(voiceDataBuffer));
+                }
+                
             } 
             catch(Exception ex)
             {
@@ -138,13 +140,9 @@ namespace meadowvoice
             }
         }
 
-        public void ProcessPacket(OnlinePlayer fromPlayer, CustomPacket packet)
+        public void ProcessPacket(IncomingDataChunk chunk)
         {
-            if (packet.key != "meadowvoice")
-            {
-                return;
-            }
-            if (mutedPlayers.Contains(fromPlayer.id))
+            if (mutedPlayers.Contains(chunk.fromPlayer.id))
             {
                 return;
             }
@@ -155,11 +153,12 @@ namespace meadowvoice
                     if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
                     if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
                     {
-                        if (opo.owner.inLobbyId == fromPlayer.inLobbyId)
+                        if (opo.owner.inLobbyId == chunk.fromPlayer.inLobbyId)
                         {
                             if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
                             {
-                                emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
+                                var data = chunk.GetData();
+                                emitter.RecieveAudio(data, (uint)data.Length);
                             }
                         }
                     }
@@ -167,7 +166,7 @@ namespace meadowvoice
             } 
             catch (Exception ex)
             {
-                RainMeadow.RainMeadow.Error($"There was an error retrieving {fromPlayer.id.name}");
+                RainMeadow.RainMeadow.Error($"There was an error retrieving {chunk.fromPlayer.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
         }
