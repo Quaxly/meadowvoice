@@ -105,6 +105,14 @@ namespace meadowvoice
                 if (this.owner != null)
                 {
                     controller.chunk = this.owner.mainBodyChunk;
+                    // pitch correction
+                    // TODO allow for a little bit of doppler effect 
+                    controller.pitch = this.pitch;
+                    if (controller.currentSoundObject != null)
+                    {
+                        controller.currentSoundObject.soundData.pitch = this.pitch;
+                        controller.currentSoundObject.SetPitch = this.pitch;
+                    }
                 }
                 if (controller.room != this.room || controller.slatedForDeletetion)
                 {

@@ -70,6 +70,9 @@ namespace meadowvoice
                 slatedForDeletion = true;
                 return;
             }
+
+            // TODO Make these not need to live in the update logic
+
             var onlineHud = hud.parts.OfType<PlayerSpecificOnlineHud>().ToList();
             foreach(var playerHud in onlineHud)
             {
@@ -78,6 +81,18 @@ namespace meadowvoice
                     var tag = new NametagHud(playerHud);
                     tag.playerDisplay = playerHud.playerDisplay;
                     playerHud.parts.Add(tag);
+                }
+            }
+            var spectatorHud = hud.parts.OfType<SpectatorHud>().ToList();
+            foreach (var spectator in spectatorHud)
+            {
+                if (spectator.spectatorOverlay == null || spectator.spectatorOverlay.PlayerButtons == null) continue;
+                foreach (var playerButton in spectator.spectatorOverlay.PlayerButtons)
+                {
+                    if (!MuteButton.activeMuteButtons.TryGetValue(playerButton, out _))
+                    {
+                        MuteButton.NewButton(playerButton);
+                    }
                 }
             }
             bool justChanged = this.state;
