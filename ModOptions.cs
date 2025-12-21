@@ -40,7 +40,7 @@ namespace meadowvoice
             AddCheckBox(pushToTalk);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
-            AddNewLine(4);
+            AddNewLine(2);
             
             DrawKeybinders(muteKey, ref Tabs[tabIndex]);
 

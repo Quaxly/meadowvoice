@@ -1,14 +1,16 @@
-﻿using Menu;
-using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
+﻿using AssetBundles;
+using meadowvoice;
+using meadowvoice.HUD;
 using RainMeadow;
+using RWCustom;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Reflection;
+using System.IO;
+using System.Linq;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
-using static Rewired.Utils.ReflectionTools;
-using BindingFlags = System.Reflection.BindingFlags;
 
 namespace meadowvoice
 {
@@ -25,12 +27,6 @@ namespace meadowvoice
             On.Creature.Update += Creature_Update;
             On.HUD.HUD.InitSinglePlayerHud += HUD_InitSinglePlayerHud;
             On.HUD.HUD.InitMultiplayerHud += HUD_InitMultiplayerHud;
-
-            detours.Add(new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), Lobby_ActivateImpl));
-            detours.Add(new Hook(typeof(OnlineResource).GetMethod(nameof(OnlineResource.OnPlayerDisconnect)), OnlineResource_OnPlayerDisconnect));
-            detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.ResourceFromIdentifier)), OnlineManager_ResourceFromIdentifier));
-            detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.LeaveLobby)), OnlineManager_LeaveLobby));
-            detours.Add(new ILHook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.Update)), OnlineManager_Update));
         }
 
         public static void Remove()

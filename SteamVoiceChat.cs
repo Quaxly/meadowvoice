@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace meadowvoice
 {
-    internal class SteamVoiceChat 
+    internal class SteamVoiceChat : IUseCustomPackets
     {
         public static SteamVoiceChat myVoiceChat;
         public static AudioSource playbackClip;
@@ -40,6 +40,8 @@ namespace meadowvoice
             this.owner = owner;
             this.ownerEntity = ownerEntity;
             this.game = ownerEntity.abstractCreature.world.game;
+
+            CustomManager.Subscribe("meadowvoice", this);
         }
 
         public void ChangeOwningEntity(OnlineCreature newOwner)
@@ -87,7 +89,6 @@ namespace meadowvoice
             {
                 return;
             }
-            // Dear Valve, pweety pwease with a chewwy on towp give us a way to select our audio input in the steam api
             uint bytesAvailableCompressed;
             if (SteamUser.GetAvailableVoice(out bytesAvailableCompressed) == EVoiceResult.k_EVoiceResultOK)
             {
@@ -96,7 +97,7 @@ namespace meadowvoice
                 byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
                 if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
                 {
-                    foreach (var op in VoiceChatSession.instance.participants)
+                    foreach (var op in roomSession.participants)
                     {
                         if (!op.isMe)
                         {
@@ -125,19 +126,23 @@ namespace meadowvoice
 
         public void SendVoice(OnlinePlayer op, byte[] voiceDataBuffer, ushort bytesWritten)
         {
+            //byte[] secret = Crypto.RetrieveFromPeer(op);
+            //if (secret == null)
+            //{
+            //    return;
+            //}
             try
             {
-                if (VoiceChatSession.instance.participants.Contains(op))
-                {
-                    op.QueueChunk(VoiceChatSession.instance, false, new ArraySegment<byte>(voiceDataBuffer));
-                }
-                
+                //byte[] encryptedData = Crypto.Encrypt(secret, voiceDataBuffer);
+                //CustomManager.SendCustomData(op, "meadowvoice", encryptedData, (ushort)encryptedData.Length, NetIO.SendType.Unreliable);
+                CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
             } 
             catch(Exception ex)
             {
                 RainMeadow.RainMeadow.Error($"There was an error encoding voice data for {op.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
+            //OnlineManager.netIO.SendP2P(op, new CustomPacket("meadowvoice", voiceDataBuffer, (ushort)voiceDataBuffer.Length), NetIO.SendType.Unreliable);
         }
 
         public void ProcessPacket(IncomingDataChunk chunk)
@@ -148,6 +153,7 @@ namespace meadowvoice
             }
             try
             {
+                //byte[] decryptedData = Crypto.Decrypt(Crypto.GetMyPublicKey, packet.data);
                 foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
                 {
                     if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
@@ -157,8 +163,8 @@ namespace meadowvoice
                         {
                             if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
                             {
-                                var data = chunk.GetData();
-                                emitter.RecieveAudio(data, (uint)data.Length);
+                                //emitter.RecieveAudio(decryptedData, (uint)decryptedData.Length);
+                                emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
                             }
                         }
                     }

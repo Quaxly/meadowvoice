@@ -37,7 +37,7 @@ namespace meadowvoice.HUD
         {
             base.Draw(timeStacker);
             var op = this.owner.clientSettings.owner;
-            bool hasVoice = false;
+            bool hasVoice;
             if (SteamVoiceChat.myVoiceChat is null || this.playerDisplay is null)
             {
                 this.speakerIcon.alpha = 0f;
@@ -50,10 +50,7 @@ namespace meadowvoice.HUD
             else
             {
                 var emitter = VoiceEmitter.FromOnlinePlayer(op);
-                if (emitter != null)
-                {
-                    hasVoice = emitter.voiceTimer <= 30;
-                }
+                hasVoice = emitter.voiceTimer <= 30;
             }
             this.speakerIcon.alpha = this.playerDisplay.username.alpha;
             this.speakerIcon.color = this.playerDisplay.username.color;

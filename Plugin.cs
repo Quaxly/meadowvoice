@@ -32,6 +32,9 @@ namespace meadowvoice
 
                 Futile.atlasManager.LoadAtlas("atlases/uiMeadowVoice");
 
+                //Crypto.secretHandler = new();
+                //CustomManager.Subscribe("meadowvoicehs", Crypto.secretHandler);
+
                 IsInit = true;
             }
             catch (Exception ex)
