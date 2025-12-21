@@ -73,6 +73,7 @@ namespace meadowvoice
             this.owner = newCreature;
             this.ownerEntity = newCreature.abstractCreature.GetOnlineCreature();
             map.Add(this.owner, this);
+            Reset();
         }
         public void Destroy()
         {
@@ -83,6 +84,12 @@ namespace meadowvoice
             controller.Destroy();
             controller.currentSoundObject.Stop();
             controller = null;
+        }
+
+        public void Reset()
+        {
+            streamingReadQueue.Clear();
+            streamPosition = 0;
         }
         public void Update()
         {

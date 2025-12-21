@@ -82,15 +82,9 @@ namespace meadowvoice
                     {
                         session.succession = succession.list.Select(id => OnlineManager.players.Where(p => p.id == id).FirstOrDefault()).ToList();
                         session.UpdateParticipants(session.succession);
-                    }   
+                    }
                 }
             }
-            
-        }
-
-        public override void ProcessEntireChunkImpl(IncomingDataChunk chunk)
-        {
-            SteamVoiceChat.myVoiceChat.ProcessPacket(chunk);
         }
 
         protected override ResourceState MakeState(uint ts) => new VoiceChatSessionState(this, ts);

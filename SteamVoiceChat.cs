@@ -89,6 +89,7 @@ namespace meadowvoice
             {
                 return;
             }
+            // Dear Valve, pweety pwease with a chewwy on towp give us a way to select our audio input in the steam api
             uint bytesAvailableCompressed;
             if (SteamUser.GetAvailableVoice(out bytesAvailableCompressed) == EVoiceResult.k_EVoiceResultOK)
             {
@@ -126,53 +127,44 @@ namespace meadowvoice
 
         public void SendVoice(OnlinePlayer op, byte[] voiceDataBuffer, ushort bytesWritten)
         {
-            //byte[] secret = Crypto.RetrieveFromPeer(op);
-            //if (secret == null)
-            //{
-            //    return;
-            //}
             try
             {
-                //byte[] encryptedData = Crypto.Encrypt(secret, voiceDataBuffer);
-                //CustomManager.SendCustomData(op, "meadowvoice", encryptedData, (ushort)encryptedData.Length, NetIO.SendType.Unreliable);
-                CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
-            } 
-            catch(Exception ex)
+                if (VoiceChatSession.instance.participants.Contains(op))
+                {
+                    CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
+                }
+            }
+            catch (Exception ex)
             {
                 RainMeadow.RainMeadow.Error($"There was an error encoding voice data for {op.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
-            //OnlineManager.netIO.SendP2P(op, new CustomPacket("meadowvoice", voiceDataBuffer, (ushort)voiceDataBuffer.Length), NetIO.SendType.Unreliable);
         }
 
-        public void ProcessPacket(IncomingDataChunk chunk)
+        public void ProcessPacket(OnlinePlayer fromPlayer, CustomPacket packet)
         {
-            if (mutedPlayers.Contains(chunk.fromPlayer.id))
-            {
-                return;
-            }
+            if (packet.key != "meadowvoice") return;
+            if (mutedPlayers.Contains(fromPlayer.id)) return;
             try
             {
-                //byte[] decryptedData = Crypto.Decrypt(Crypto.GetMyPublicKey, packet.data);
                 foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
                 {
                     if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
                     if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
                     {
-                        if (opo.owner.inLobbyId == chunk.fromPlayer.inLobbyId)
+                        if (opo.owner.inLobbyId == fromPlayer.inLobbyId)
                         {
                             if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
                             {
-                                //emitter.RecieveAudio(decryptedData, (uint)decryptedData.Length);
                                 emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
                             }
                         }
                     }
                 }
-            } 
+            }
             catch (Exception ex)
             {
-                RainMeadow.RainMeadow.Error($"There was an error retrieving {chunk.fromPlayer.id.name}");
+                RainMeadow.RainMeadow.Error($"There was an error retrieving {fromPlayer.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
         }
