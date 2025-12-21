@@ -12,6 +12,9 @@ using UnityEngine.Profiling;
 
 namespace meadowvoice
 {
+    /// <summary>
+    /// An object that decodes and plays voice data in it's room.
+    /// </summary>
     internal class VoiceEmitter
     {
         public static ConditionalWeakTable<Creature, VoiceEmitter> map = new();
@@ -108,6 +111,7 @@ namespace meadowvoice
                     controller.Destroy();
                     controller.currentSoundObject.Stop();
                     controller = null;
+                    Reset();
                 }
             }
             if (buffering)

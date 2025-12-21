@@ -10,6 +10,9 @@ using UnityEngine;
 
 namespace meadowvoice
 {
+    /// <summary>
+    /// Processes and distributes incoming and outgoing voice data for Steam Clients
+    /// </summary>
     internal class SteamVoiceChat : IUseCustomPackets
     {
         public static SteamVoiceChat myVoiceChat;
@@ -27,11 +30,6 @@ namespace meadowvoice
         //public const uint sampleRate = 11025;
         public const uint sampleRate = 48000;
         public const uint bufferSize = 22050;
-
-        public RPCEvent lastEvent;
-        public uint index;
-
-        public ushort debugIndex;
 
         public bool Active => true;
 
@@ -98,7 +96,7 @@ namespace meadowvoice
                 byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
                 if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
                 {
-                    foreach (var op in roomSession.participants)
+                    foreach (var op in roomSession.participants) // We only want to send voice data to people in the same room as us
                     {
                         if (!op.isMe)
                         {
