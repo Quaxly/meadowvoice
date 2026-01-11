@@ -52,7 +52,7 @@ namespace meadowvoice.HUD
                 var emitter = VoiceEmitter.FromOnlinePlayer(op);
                 if (emitter != null)
                 {
-                    hasVoice = emitter.voiceTimer <= 30;
+                    hasVoice = emitter.voiceTimer < 30;
                 }
             }
             this.speakerIcon.alpha = this.playerDisplay.username.alpha;
