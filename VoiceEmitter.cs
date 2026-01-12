@@ -30,6 +30,8 @@ namespace meadowvoice
         public ChunkSoundEmitter controller;
         public int voiceTimer;
 
+        public float loudness;
+
         public float Volume
         {
             get
@@ -130,7 +132,7 @@ namespace meadowvoice
             {
                 if (!this.owner.dead && this.controller is null)
                 {
-                    RainMeadow.RainMeadow.Debug("Processing next sample");
+                    RainMeadow.RainMeadow.Debug($"Controller destroyed, recreating");
                     VirtualMicrophone mic = game.cameras[0].virtualMicrophone;
                     for (int i = 0; i < game.cameras.Length; i++)
                     {
@@ -148,15 +150,17 @@ namespace meadowvoice
                     mic.soundObjects.Add(controller.currentSoundObject);
                     controller.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
                     controller.currentSoundObject.Play();
-                }
-                if (this.owner.dead)
-                {
-                    if (this.controller is not null)
+
+                    if (ModOptions.alertEnemy.Value)
                     {
-                        this.controller.Destroy();
-                        this.controller.currentSoundObject.Stop();
-                        this.controller = null;
+                        this.room.InGameNoise(new Noise.InGameNoise(owner.mainBodyChunk.pos, Mathf.Lerp(10f, 10000f, loudness), owner, 1f));
                     }
+                }
+                if (this.owner.dead && this.controller is not null)
+                {
+                    this.controller.Destroy();
+                    this.controller.currentSoundObject.Stop();
+                    this.controller = null;
                 }
             }
             if (this.voiceTimer < 30)
@@ -211,6 +215,8 @@ namespace meadowvoice
                     streamPosition++;
                     count++;
                 }
+                // Should work ok for our uses
+                loudness = data.Average();
             }
         }
 
@@ -237,55 +243,47 @@ namespace meadowvoice
 
         public void RecieveAudio(byte[] voiceDataBuffer, uint bytesRead)
         {
-            try
+            if (SteamVoiceDebug.DEBUG)
             {
-                if (SteamVoiceDebug.DEBUG)
-                {
-                    RainMeadow.RainMeadow.Debug($"vdb leng: {voiceDataBuffer.Length}");
-                    RainMeadow.RainMeadow.Debug($"byRd: {bytesRead}");
-                }
-                int bufferSize = (int)SteamVoiceChat.bufferSize;
-                byte[] decompressedBuffer = null;
-                var result = EVoiceResult.k_EVoiceResultNoData;
-                uint bytesWritten = 0;
-                do
-                {
-                    bufferSize *= 2;
-                    decompressedBuffer = new byte[bufferSize];
-                    result = SteamUser.DecompressVoice(voiceDataBuffer, (uint)voiceDataBuffer.Length, decompressedBuffer, (uint)decompressedBuffer.Length, out bytesWritten, SteamVoiceChat.sampleRate);
-                } while (result == EVoiceResult.k_EVoiceResultBufferTooSmall);
-                if (result != EVoiceResult.k_EVoiceResultOK || bytesWritten == 0)
-                {
-                    RainMeadow.RainMeadow.Debug($"Failed to decompress voice. Result: {result} Bytes Written: {bytesWritten}");
-                    return;
-                }
+                RainMeadow.RainMeadow.Debug($"vdb leng: {voiceDataBuffer.Length}");
+                RainMeadow.RainMeadow.Debug($"byRd: {bytesRead}");
+            }
+            int bufferSize = (int)SteamVoiceChat.bufferSize;
+            byte[] decompressedBuffer = null;
+            var result = EVoiceResult.k_EVoiceResultNoData;
+            uint bytesWritten = 0;
+            do
+            {
+                bufferSize *= 2;
+                decompressedBuffer = new byte[bufferSize];
+                result = SteamUser.DecompressVoice(voiceDataBuffer, (uint)voiceDataBuffer.Length, decompressedBuffer, (uint)decompressedBuffer.Length, out bytesWritten, SteamVoiceChat.sampleRate);
+            } while (result == EVoiceResult.k_EVoiceResultBufferTooSmall);
+            if (result != EVoiceResult.k_EVoiceResultOK || bytesWritten == 0)
+            {
+                RainMeadow.RainMeadow.Debug($"Failed to decompress voice. Result: {result} Bytes Written: {bytesWritten}");
+                return;
+            }
 
-                var sampleData = new float[bytesWritten / 2];
-                for (int i = 0; i < sampleData.Length; i++)
-                {
-                    float value = BitConverter.ToInt16(decompressedBuffer, i * 2);
-                    sampleData[i] = value * 15f / short.MaxValue;
-                }
+            var sampleData = new float[bytesWritten / 2];
+            for (int i = 0; i < sampleData.Length; i++)
+            {
+                float value = BitConverter.ToInt16(decompressedBuffer, i * 2);
+                sampleData[i] = value * 15f / short.MaxValue;
+            }
 
-                this.streamingReadQueue.Add(packetId, sampleData);
-                packetId++;
+            this.streamingReadQueue.Add(packetId, sampleData);
+            packetId++;
 
-                if (SteamVoiceDebug.DEBUG)
+            if (SteamVoiceDebug.DEBUG)
+            {
+                for (int i = 0; i < SteamVoiceDebug.recievingInfo.Count; i++)
                 {
-                    for (int i = 0; i < SteamVoiceDebug.recievingInfo.Count; i++)
+                    if (SteamVoiceDebug.recievingInfo[i].StartsWith(ownerEntity.owner.id.name))
                     {
-                        if (SteamVoiceDebug.recievingInfo[i].StartsWith(ownerEntity.owner.id.name))
-                        {
-                            SteamVoiceDebug.recievingInfo.RemoveAt(i);
-                        }
+                        SteamVoiceDebug.recievingInfo.RemoveAt(i);
                     }
-                    SteamVoiceDebug.recievingInfo.Add(ownerEntity.owner.id.name + " - " + sampleData.Length);
                 }
-            } 
-            catch (Exception e)
-            {
-                RainMeadow.RainMeadow.Debug("There was an error decoding voice data");
-                RainMeadow.RainMeadow.Debug(e);
+                SteamVoiceDebug.recievingInfo.Add(ownerEntity.owner.id.name + " - " + sampleData.Length + " - " + loudness);
             }
         }
 

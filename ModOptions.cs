@@ -18,6 +18,9 @@ namespace meadowvoice
         public static Configurable<KeyCode> muteKey { get; } = Instance.config.Bind(nameof(muteKey), 
             KeyCode.M, new ConfigurableInfo("Mute/Unmute or Push to Talk key.", null, "", "Mute Key"));
 
+        public static Configurable<bool> alertEnemy { get; } = Instance.config.Bind(nameof(alertEnemy),
+            true, new ConfigurableInfo("Allows creature AI to detect your voice.", null, "", "Alert Enemy AI"));
+
         // Advanced
         public static Configurable<int> packetBuffer { get; } = Instance.config.Bind(nameof(packetBuffer),
             3, new ConfigurableInfo("Leave this at 3.", null, "", "Packet Buffer"));
@@ -38,6 +41,10 @@ namespace meadowvoice
             AddTab(ref tabIndex, "Meadow Voice");
 
             AddCheckBox(pushToTalk);
+
+            AddNewLine(4);
+
+            AddCheckBox(alertEnemy);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
             AddNewLine(4);

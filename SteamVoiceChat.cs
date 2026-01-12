@@ -94,7 +94,9 @@ namespace meadowvoice
                 hasVoice = true;
                 voiceTimer = 0;
                 byte[] voiceDataBuffer = new byte[bytesAvailableCompressed];
-                if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK && bytesWritten == bytesAvailableCompressed && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
+                if (SteamUser.GetVoice(true, voiceDataBuffer, bytesAvailableCompressed, out uint bytesWritten) == EVoiceResult.k_EVoiceResultOK 
+                    && bytesWritten == bytesAvailableCompressed 
+                    && ownerEntity != null && ownerEntity.currentlyJoinedResource is RoomSession roomSession)
                 {
                     foreach (var op in roomSession.participants) // We only want to send voice data to people in the same room as us
                     {
@@ -127,9 +129,10 @@ namespace meadowvoice
         {
             try
             {
+                // Only send voice data to VoiceChatSession participants to avoid wasting precious bandwidth
                 if (VoiceChatSession.instance.participants.Contains(op))
                 {
-                    CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, (ushort)bytesWritten, NetIO.SendType.Unreliable);
+                    CustomManager.SendCustomData(op, "meadowvoice", voiceDataBuffer, bytesWritten, NetIO.SendType.Unreliable);
                 }
             }
             catch (Exception ex)
@@ -145,24 +148,17 @@ namespace meadowvoice
             if (mutedPlayers.Contains(fromPlayer.id)) return;
             try
             {
-                foreach (var avatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
+                var emitter = VoiceEmitter.FromOnlinePlayer(fromPlayer);
+                if (emitter == null)
                 {
-                    if (avatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue;
-                    if (avatar.FindEntity(true) is OnlinePhysicalObject opo && opo.apo is AbstractCreature ac && ac.realizedCreature is not null)
-                    {
-                        if (opo.owner.inLobbyId == fromPlayer.inLobbyId)
-                        {
-                            if (VoiceEmitter.map.TryGetValue(ac.realizedCreature, out var emitter))
-                            {
-                                emitter.RecieveAudio(packet.data, (uint)packet.data.Length);
-                            }
-                        }
-                    }
+                    RainMeadow.RainMeadow.Error($"Recieved Voice Packet from {fromPlayer.id.name} who does not have a voice emitter.");
+                    return;
                 }
+                emitter.RecieveAudio(packet.data, (uint)packet.size);
             }
             catch (Exception ex)
             {
-                RainMeadow.RainMeadow.Error($"There was an error retrieving {fromPlayer.id.name}");
+                RainMeadow.RainMeadow.Error($"There was an error decoding voice data from {fromPlayer.id.name}");
                 RainMeadow.RainMeadow.Error(ex);
             }
         }
