@@ -55,7 +55,7 @@ namespace meadowvoice
         public void Unmute(MeadowPlayerId id)
         {
             mutedPlayers.RemoveAll(m => m == id);
-            game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_UNMUTE, 0f, 0.35f, 1f, 1);
+            game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_OTHERUNMUTE, 0f, 0.35f, 1f, 1);
         }
 
         public void BeginStream()

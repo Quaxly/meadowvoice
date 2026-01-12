@@ -49,6 +49,15 @@ namespace meadowvoice.HUD
             }
             else
             {
+                if (!VoiceChatSession.instance.participants.Contains(op))
+                {
+                    this.speakerIcon.alpha = 0f;
+                    return;
+                }
+                else
+                {
+                    this.speakerIcon.alpha = 1f;
+                }
                 var emitter = VoiceEmitter.FromOnlinePlayer(op);
                 if (emitter != null)
                 {
