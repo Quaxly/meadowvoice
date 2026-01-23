@@ -32,6 +32,8 @@ namespace meadowvoice
 
         public float loudness;
 
+        public bool Muted => SteamVoiceChat.mutedPlayers.Contains(ownerEntity.owner.id);
+
         public float Volume
         {
             get
@@ -149,12 +151,13 @@ namespace meadowvoice
                     controller.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, this.Volume, this.pitch, false);
                     mic.soundObjects.Add(controller.currentSoundObject);
                     controller.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
+                    controller.currentSoundObject.soundData.dopplerFac = 0f;
                     controller.currentSoundObject.Play();
 
-                    if (ModOptions.alertEnemy.Value)
-                    {
-                        this.room.InGameNoise(new Noise.InGameNoise(owner.mainBodyChunk.pos, Mathf.Lerp(10f, 10000f, loudness), owner, 1f));
-                    }
+                    //if (ModOptions.alertEnemy.Value)
+                    //{
+                    //    this.room.InGameNoise(new Noise.InGameNoise(owner.mainBodyChunk.pos, Mathf.Lerp(0f, 10000f, loudness), owner, 1f));
+                    //}
                 }
                 if (this.owner.dead && this.controller is not null)
                 {
@@ -216,7 +219,12 @@ namespace meadowvoice
                     count++;
                 }
                 // Should work ok for our uses
-                loudness = data.Average();
+                float samples = 0;
+                foreach (float d in data)
+                {
+                    samples += Mathf.Pow(d, 2);
+                }
+                loudness = Mathf.Sqrt(samples / data.Length);
             }
         }
 
@@ -241,6 +249,11 @@ namespace meadowvoice
             streamIndex = 0;
         }
 
+        /// <summary>
+        /// Decode and queue voice data (16-bit PCM)
+        /// </summary>
+        /// <param name="voiceDataBuffer"></param>
+        /// <param name="bytesRead"></param>
         public void RecieveAudio(byte[] voiceDataBuffer, uint bytesRead)
         {
             if (SteamVoiceDebug.DEBUG)

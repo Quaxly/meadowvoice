@@ -47,17 +47,29 @@ namespace meadowvoice
             this.ownerEntity = newOwner;
         }
 
+        /// <summary>
+        /// Mute another player
+        /// </summary>
+        /// <param name="id"></param>
         public void Mute(MeadowPlayerId id)
         {
             mutedPlayers.Add(id);
             game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_OTHERMUTE, 0f, 0.35f, 1f, 1);
         }
+        /// <summary>
+        /// Unmute another player
+        /// </summary>
+        /// <param name="id"></param>
         public void Unmute(MeadowPlayerId id)
         {
             mutedPlayers.RemoveAll(m => m == id);
             game.cameras[0].virtualMicrophone.PlaySound(Enums.MEADOWVOICE_OTHERUNMUTE, 0f, 0.35f, 1f, 1);
         }
 
+        /// <summary>
+        /// Begin recording the user's microphone via Steam Voice
+        /// Called when unmuted or when holding Push To Talk.
+        /// </summary>
         public void BeginStream()
         {
             if (!recording)
@@ -67,6 +79,10 @@ namespace meadowvoice
                 recording = true;
             }
         }
+        /// <summary>
+        /// Stop recording the user's microphone via Steam Voice
+        /// Called when muted or not holding pushed to talk
+        /// </summary>
         public void EndStream()
         {
             if (recording)
@@ -110,6 +126,10 @@ namespace meadowvoice
                             {
                                 pbd.RecieveAudio(voiceDataBuffer, (uint)voiceDataBuffer.Length);
                             }
+                            //if (ModOptions.alertEnemy.Value && roomSession.absroom?.realizedRoom != null)
+                            //{
+                            //    roomSession.absroom.realizedRoom.InGameNoise(new Noise.InGameNoise(owner.mainBodyChunk.pos, Mathf.Lerp(0f, 10000f, loudness), owner, 1f));
+                            //}
                         }
                     }
                 }
