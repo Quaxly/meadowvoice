@@ -14,6 +14,7 @@ namespace meadowvoice.HUD
         public static ConditionalWeakTable<PlayerSpecificOnlineHud, NametagHud> activeHuds = new();
         public FSprite speakerIcon;
         public OnlinePlayerDisplay playerDisplay;
+        public VoiceEmitter emitter;
         public NametagHud(PlayerSpecificOnlineHud owner) : base(owner)
         {
             this.owner = owner;
@@ -32,6 +33,7 @@ namespace meadowvoice.HUD
         public override void Update()
         {
             base.Update();
+            emitter = VoiceEmitter.FromOnlinePlayer(this.owner.clientSettings.owner);
         }
         public override void Draw(float timeStacker)
         {
@@ -58,7 +60,7 @@ namespace meadowvoice.HUD
                 {
                     this.speakerIcon.alpha = 1f;
                 }
-                var emitter = VoiceEmitter.FromOnlinePlayer(op);
+                
                 if (emitter != null)
                 {
                     hasVoice = emitter.voiceTimer < 30;

@@ -17,7 +17,12 @@ namespace meadowvoice
     internal class MuteButton : SimplerSymbolButton
     {
         public static ConditionalWeakTable<PlayerButton, SimplerSymbolButton> activeMuteButtons = new();
+
         private OnlinePlayer player;
+
+        private VoiceEmitter emitter;
+
+        private bool CurrentlyMuted => SteamVoiceChat.mutedPlayers.Contains(player.id);
 
         private float sin;
         private float lastSin;
@@ -42,11 +47,19 @@ namespace meadowvoice
             this.symbolSprite.scale = 0.65f;
         }
 
+        public override void Update()
+        {
+            base.Update();
+            if (!CurrentlyMuted)
+            {
+                emitter = VoiceEmitter.FromOnlinePlayer(player);
+            }
+        }
+
         public override void GrafUpdate(float timeStacker)
         {
             base.GrafUpdate(timeStacker);
-            bool currentlyMuted = SteamVoiceChat.mutedPlayers.Contains(player.id);
-            if (currentlyMuted)
+            if (CurrentlyMuted)
             {
                 this.symbolSprite.element = Futile.atlasManager.GetElementWithName("speakingmuted");
                 this.symbolSprite.color = Menu.Menu.MenuRGB(Menu.Menu.MenuColors.DarkRed);
@@ -54,7 +67,6 @@ namespace meadowvoice
             else
             {
                 this.symbolSprite.color = Color.white;
-                var emitter = VoiceEmitter.FromOnlinePlayer(this.player);
                 if (emitter is null)
                 {
                     this.symbolSprite.element = Futile.atlasManager.GetElementWithName("speakingmuted");

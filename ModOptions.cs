@@ -21,6 +21,9 @@ namespace meadowvoice
         public static Configurable<bool> alertEnemy { get; } = Instance.config.Bind(nameof(alertEnemy),
             true, new ConfigurableInfo("Allows creature AI to detect your voice.", null, "", "Alert Enemy AI"));
 
+        public static Configurable<bool> silenceOnDeath { get; } = Instance.config.Bind(nameof(silenceOnDeath),
+            true, new ConfigurableInfo("Stops transmitting voice if you die.", null, "", "Silent Death"));
+
         // Advanced
         public static Configurable<int> packetBuffer { get; } = Instance.config.Bind(nameof(packetBuffer),
             3, new ConfigurableInfo("Leave this at 3.", null, "", "Packet Buffer"));

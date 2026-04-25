@@ -38,17 +38,34 @@ namespace meadowvoice
         {
             get
             {
-                return this.volume;
+                return volume;
             }
             set
             {
-                this.volume = value;
-                if (this.controller != null)
+                volume = value;
+                if (controller != null)
                 {
-                    this.controller.volume = value;
+                    controller.volume = value;
                 }
             }
         }
+
+        public float Pitch
+        {
+            get
+            {
+                return pitch;
+            }
+            set
+            {
+                pitch = value;
+                if (controller != null)
+                {
+                    controller.pitch = value;
+                }
+            }
+        }
+
         public float volume = 1.0f;
         public float pitch = 1.0f;
 
@@ -65,7 +82,7 @@ namespace meadowvoice
             this.owner = owner;
             this.ownerEntity = ownerEntity;
 
-            this.game = owner.abstractCreature.world.game;
+            game = owner.abstractCreature.world.game;
 
             map.Add(owner, this);
 
@@ -77,16 +94,16 @@ namespace meadowvoice
         }
         public void ChangeOwningCreature(Creature newCreature)
         {
-            this.owner = newCreature;
-            this.ownerEntity = newCreature.abstractCreature.GetOnlineCreature();
-            map.Add(this.owner, this);
+            owner = newCreature;
+            ownerEntity = newCreature.abstractCreature.GetOnlineCreature();
+            map.Add(owner, this);
             Reset();
         }
         public void Destroy()
         {
-            if (map.TryGetValue(this.owner, out var self))
+            if (map.TryGetValue(owner, out var self))
             {
-                map.Remove(this.owner);
+                map.Remove(owner);
             }
             controller.Destroy();
             controller.currentSoundObject.Stop();
@@ -100,25 +117,25 @@ namespace meadowvoice
         }
         public void Update()
         {
-            if (this.owner.room != null)
+            if (owner.room != null)
             {
-                this.room = this.owner.room;
+                room = owner.room;
             }
             if (controller != null)
             {
-                if (this.owner != null)
+                if (owner != null)
                 {
-                    controller.chunk = this.owner.mainBodyChunk;
+                    controller.chunk = owner.mainBodyChunk;
                     // pitch correction
                     // TODO allow for a little bit of doppler effect 
-                    controller.pitch = this.pitch;
+                    controller.pitch = pitch;
                     if (controller.currentSoundObject != null)
                     {
-                        controller.currentSoundObject.soundData.pitch = this.pitch;
-                        controller.currentSoundObject.SetPitch = this.pitch;
+                        controller.currentSoundObject.soundData.pitch = pitch;
+                        controller.currentSoundObject.SetPitch = pitch;
                     }
                 }
-                if (controller.room != this.room || controller.slatedForDeletetion)
+                if (controller.room != room || controller.slatedForDeletetion)
                 {
                     controller.Destroy();
                     controller.currentSoundObject.Stop();
@@ -128,11 +145,11 @@ namespace meadowvoice
             }
             if (buffering)
             {
-                buffering = this.streamingReadQueue.Count < ModOptions.packetBuffer.Value;
+                buffering = streamingReadQueue.Count < ModOptions.packetBuffer.Value;
             }
             else
             {
-                if (!this.owner.dead && this.controller is null)
+                if (!owner.dead && controller is null)
                 {
                     RainMeadow.RainMeadow.Debug($"Controller destroyed, recreating");
                     VirtualMicrophone mic = game.cameras[0].virtualMicrophone;
@@ -144,14 +161,14 @@ namespace meadowvoice
                         }
                     }
 
-                    controller = new ChunkSoundEmitter(owner.mainBodyChunk, this.Volume, this.pitch);
+                    controller = new ChunkSoundEmitter(owner.mainBodyChunk, Volume, Pitch);
                     controller.requireActiveUpkeep = false;
-                    this.room.AddObject(controller);
+                    room.AddObject(controller);
                     SoundLoader.SoundData soundData = mic.GetSoundData(SoundID.Slugcat_Stash_Spear_On_Back, -1);
                     controller.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, controller, this.Volume, this.pitch, false);
                     mic.soundObjects.Add(controller.currentSoundObject);
                     controller.currentSoundObject.audioSource.clip = AudioClip.Create(ownerEntity.owner.inLobbyId + " voice", (int)(SteamVoiceChat.sampleRate * 10), 1, (int)SteamVoiceChat.sampleRate, true, OnAudioRead, OnAudioSetPosition);
-                    controller.currentSoundObject.soundData.dopplerFac = 0f;
+                    controller.currentSoundObject.soundData.dopplerFac = 0.012f;
                     controller.currentSoundObject.Play();
 
                     //if (ModOptions.alertEnemy.Value)
@@ -159,22 +176,22 @@ namespace meadowvoice
                     //    this.room.InGameNoise(new Noise.InGameNoise(owner.mainBodyChunk.pos, Mathf.Lerp(0f, 10000f, loudness), owner, 1f));
                     //}
                 }
-                if (this.owner.dead && this.controller is not null)
+                if (owner.dead && controller is not null)
                 {
-                    this.controller.Destroy();
-                    this.controller.currentSoundObject.Stop();
-                    this.controller = null;
+                    controller.Destroy();
+                    controller.currentSoundObject.Stop();
+                    controller = null;
                 }
             }
-            if (this.voiceTimer < 30)
+            if (voiceTimer < 30)
             {
-                this.voiceTimer++;
+                voiceTimer++;
             }
         }
 
         private void OnAudioSetPosition(int newPosition)
         {
-            this.streamPosition = newPosition;
+            streamPosition = newPosition;
         }
 
         private void OnAudioRead(float[] data)
@@ -191,7 +208,7 @@ namespace meadowvoice
             }
             else
             {
-                this.voiceTimer = 0;
+                voiceTimer = 0;
                 if (currentStream == null)
                 {
                     Dequeue();
@@ -230,15 +247,15 @@ namespace meadowvoice
 
         private void Dequeue()
         {
-            if (this.streamingReadQueue.Count > 0)
+            if (streamingReadQueue.Count > 0)
             {
-                var pair = this.streamingReadQueue.First();
+                var pair = streamingReadQueue.First();
                 var nextStream = pair.Value;
                 if (nextStream != null)
                 {
                     currentStream = nextStream;
                     currentIndex = pair.Key;
-                    this.streamingReadQueue.Remove(pair.Key);
+                    streamingReadQueue.Remove(pair.Key);
                 }
             }
             else
@@ -284,7 +301,7 @@ namespace meadowvoice
                 sampleData[i] = value * 15f / short.MaxValue;
             }
 
-            this.streamingReadQueue.Add(packetId, sampleData);
+            streamingReadQueue.Add(packetId, sampleData);
             packetId++;
 
             if (SteamVoiceDebug.DEBUG)
