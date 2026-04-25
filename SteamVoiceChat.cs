@@ -21,6 +21,8 @@ namespace meadowvoice
 
         public OnlinePlayer owner;
         public OnlineCreature ownerEntity;
+
+        // TODO Menu Process support
         public RainWorldGame game;
 
         public bool recording;

@@ -3,6 +3,7 @@ using meadowvoice.HUD;
 using RainMeadow;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace meadowvoice
 {
@@ -89,7 +90,7 @@ namespace meadowvoice
                 if (spectator.spectatorOverlay == null || spectator.spectatorOverlay.PlayerButtons == null) continue;
                 foreach (var playerButton in spectator.spectatorOverlay.PlayerButtons)
                 {
-                    if (!MuteButton.activeMuteButtons.TryGetValue(playerButton, out _))
+                    if (!MuteButton.activeMuteButtons.TryGetValue(playerButton, out _) && !playerButton.player.isMe)
                     {
                         MuteButton.NewButton(playerButton);
                     }
@@ -102,11 +103,11 @@ namespace meadowvoice
             this.lastScale = this.scale;
             this.lastAlpha = this.alpha;
             this.fadeColor = Mathf.Lerp(this.fadeColor, SteamVoiceChat.myVoiceChat.recording ? 1f : 0f, 0.15f);
-            this.displayColor = Color.Lerp(Color.Lerp(Color.red, Color.white, this.fadeColor), Color.black, SteamVoiceChat.myVoiceChat.hasVoice ? 0 : 0.45f);
+            this.displayColor = Color.Lerp(Color.Lerp(Color.red, Color.white, this.fadeColor), Color.black, SteamVoiceChat.myVoiceChat.hasVoice || !SteamVoiceChat.myVoiceChat.recording ? 0 : 0.45f);
             this.scale = Mathf.Lerp(this.scale, 0.65f, 0.1f);
             if (justChanged != this.state)
             {
-                this.scale += 0.30f;
+                this.scale = Mathf.Min(scale + 0.30f, 0.95f);
                 activityTimer = 0;
                 this.alpha = 0.95f;
             }

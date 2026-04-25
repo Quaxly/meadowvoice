@@ -68,7 +68,7 @@ namespace meadowvoice.HUD
             }
             this.speakerIcon.alpha = this.playerDisplay.username.alpha;
             this.speakerIcon.color = this.playerDisplay.username.color;
-            if (SteamVoiceChat.mutedPlayers.Contains(owner.clientSettings.owner.id))
+            if (SteamVoiceChat.mutedPlayers.Contains(owner.clientSettings.owner.id) || (op.isMe && !SteamVoiceChat.myVoiceChat.recording))
             {
                 this.speakerIcon.element = Futile.atlasManager.GetElementWithName("speakingmuted");
             }
