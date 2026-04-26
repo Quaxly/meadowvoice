@@ -173,15 +173,15 @@ namespace meadowvoice
                 var emitter = VoiceEmitter.FromOnlinePlayer(fromPlayer);
                 if (emitter == null)
                 {
-                    RainMeadow.RainMeadow.Error($"Recieved Voice Packet from {fromPlayer.id.name} who does not have a voice emitter.");
+                    RainMeadow.RainMeadow.Warn($"Recieved Voice Packet from {fromPlayer.id.name} who does not have a voice emitter.");
                     return;
                 }
                 emitter.RecieveAudio(packet.data, (uint)packet.size);
             }
             catch (Exception ex)
             {
-                RainMeadow.RainMeadow.Error($"There was an error decoding voice data from {fromPlayer.id.name}");
-                RainMeadow.RainMeadow.Error(ex);
+                RainMeadow.RainMeadow.Warn($"There was an error decoding voice data from {fromPlayer.id.name}");
+                RainMeadow.RainMeadow.Warn(ex);
             }
         }
     }

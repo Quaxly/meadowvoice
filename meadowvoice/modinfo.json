@@ -3,7 +3,7 @@
   "name": "Meadow Voice",
   "version": "1.0.0",
   "authors": "@None",
-  "description": "Development Build, do not distribute.",
+  "description": "Voice Chat for Rain Meadow. <LINE><LINE>Credits:<LINE>@None - Voice Chat, Networking<LINE>invalidunits - Networking",
   "requirements": ["henpemaz_rainmeadow"],
   "requirements_names": ["Rain Meadow"],
   "checksum_override_version": true
