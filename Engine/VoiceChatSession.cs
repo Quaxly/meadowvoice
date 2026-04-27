@@ -12,6 +12,7 @@ namespace meadowvoice
     {
         public const string staticID = "@voice";
         public List<OnlinePlayer> succession;
+        //public Dictionary<OnlinePlayer, string> secrets;
         public static VoiceChatSession instance = null;
         public VoiceChatSession() : base(null)
         {
@@ -20,6 +21,7 @@ namespace meadowvoice
             isNeeded = true;
             isAvailable = false;
             succession = new List<OnlinePlayer>() { OnlineManager.mePlayer };
+            //secrets = new() { { OnlineManager.mePlayer, Crypto.publicKey } };
             VoiceChatHandShakeWithLobby();
         }
         public override string Id() => staticID;
@@ -34,7 +36,10 @@ namespace meadowvoice
 
         protected override void AvailableImpl()
         {
-            
+            foreach(var player in succession)
+            {
+
+            }
         }
 
         protected override void DeactivateImpl() => throw new InvalidOperationException($"you can't deactivate {staticID}");

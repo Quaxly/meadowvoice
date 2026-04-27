@@ -24,9 +24,12 @@ namespace meadowvoice
         public static Configurable<bool> silenceOnDeath { get; } = Instance.config.Bind(nameof(silenceOnDeath),
             true, new ConfigurableInfo("Stops transmitting voice if you die.", null, "", "Silent Death"));
 
+        public static Configurable<string> selectedDevice { get; } = Instance.config.Bind(nameof(selectedDevice),
+            Microphone.devices.Count() > 0 ? Microphone.devices[0] : "", new ConfigurableInfo("Select a microphone to use.", null, "", "Audio Device"));
+
         // Advanced
-        public static Configurable<int> packetBuffer { get; } = Instance.config.Bind(nameof(packetBuffer),
-            3, new ConfigurableInfo("Leave this at 3.", null, "", "Packet Buffer"));
+        public static Configurable<int> jitterBuffer { get; } = Instance.config.Bind(nameof(jitterBuffer),
+            3, new ConfigurableInfo("Only change this if you're experiencing frequent lagspikes in voice playback, default 3.", null, "", "Jitter Buffer"));
 
         public static void Register()
         {

@@ -14,7 +14,7 @@ namespace meadowvoice.HUD
         public static ConditionalWeakTable<PlayerSpecificOnlineHud, NametagHud> activeHuds = new();
         public FSprite speakerIcon;
         public OnlinePlayerDisplay playerDisplay;
-        public VoiceEmitter emitter;
+        public PlaybackChannel emitter;
         public NametagHud(PlayerSpecificOnlineHud owner) : base(owner)
         {
             this.owner = owner;
@@ -33,21 +33,24 @@ namespace meadowvoice.HUD
         public override void Update()
         {
             base.Update();
-            emitter = VoiceEmitter.FromOnlinePlayer(this.owner.clientSettings.owner);
+            if (AudioManager.voices.TryGetValue(this.owner.clientSettings.owner, out var playBack))
+            {
+                emitter = playBack;
+            }
         }
         public override void Draw(float timeStacker)
         {
             base.Draw(timeStacker);
             var op = this.owner.clientSettings.owner;
             bool hasVoice = false;
-            if (SteamVoiceChat.myVoiceChat is null || this.playerDisplay is null)
+            if (AudioManager.Instance is null || this.playerDisplay is null)
             {
                 this.speakerIcon.alpha = 0f;
                 return;
             }
             if (op.isMe)
             {
-                hasVoice = SteamVoiceChat.myVoiceChat.hasVoice;
+                hasVoice = AudioManager.Instance.HasVoice;
             }
             else
             {
@@ -68,7 +71,7 @@ namespace meadowvoice.HUD
             }
             this.speakerIcon.alpha = this.playerDisplay.username.alpha;
             this.speakerIcon.color = this.playerDisplay.username.color;
-            if (SteamVoiceChat.mutedPlayers.Contains(owner.clientSettings.owner.id) || (op.isMe && !SteamVoiceChat.myVoiceChat.recording))
+            if (AudioManager.mutedPlayers.Contains(owner.clientSettings.owner.id) || (op.isMe && !AudioManager.Instance.microphone.recording))
             {
                 this.speakerIcon.element = Futile.atlasManager.GetElementWithName("speakingmuted");
             }

@@ -20,9 +20,9 @@ namespace meadowvoice
 
         private OnlinePlayer player;
 
-        private VoiceEmitter emitter;
+        private PlaybackChannel emitter;
 
-        private bool CurrentlyMuted => SteamVoiceChat.mutedPlayers.Contains(player.id);
+        private bool CurrentlyMuted => AudioManager.mutedPlayers.Contains(player.id);
 
         private float sin;
         private float lastSin;
@@ -34,14 +34,14 @@ namespace meadowvoice
             this.player = player;
             this.OnClick += (_) =>
             {
-                if (SteamVoiceChat.myVoiceChat is null) return;
-                if (SteamVoiceChat.mutedPlayers.Contains(this.player.id))
+                if (AudioManager.Instance is null) return;
+                if (AudioManager.mutedPlayers.Contains(this.player.id))
                 {
-                    SteamVoiceChat.myVoiceChat.Unmute(this.player.id);
+                    AudioManager.Instance.Unmute(this.player.id);
                 }
                 else
                 {
-                    SteamVoiceChat.myVoiceChat.Mute(this.player.id);
+                    AudioManager.Instance.Mute(this.player.id);
                 }
             };
             this.symbolSprite.scale = 0.65f;
@@ -50,9 +50,9 @@ namespace meadowvoice
         public override void Update()
         {
             base.Update();
-            if (!CurrentlyMuted)
+            if (!CurrentlyMuted && AudioManager.voices.TryGetValue(player, out var emitter))
             {
-                emitter = VoiceEmitter.FromOnlinePlayer(player);
+                this.emitter = emitter;
             }
         }
 

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Security.Permissions;
 using BepInEx;
-using RainMeadow;
 
 [assembly: AssemblyVersion(RainMeadow.RainMeadow.MeadowVersionStr)]
 #pragma warning disable CS0618
@@ -19,6 +17,8 @@ namespace meadowvoice
         }
         private bool IsInit;
 
+        public static Plugin Instance;
+
         private void RainWorldOnOnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
             orig(self);
@@ -26,11 +26,19 @@ namespace meadowvoice
             {
                 if (IsInit) return;
 
+                Instance = this;
+
+                Natives.LoadNatives();
+
                 Enums.Init();
                 Hooks.Apply();
                 ModOptions.Register();
 
                 Futile.atlasManager.LoadAtlas("atlases/uiMeadowVoice");
+
+                Crypto.Init();
+
+                self.processManager.sideProcesses.Add(new AudioManager(self.processManager));
 
                 IsInit = true;
             }

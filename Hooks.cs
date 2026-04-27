@@ -134,13 +134,9 @@ namespace meadowvoice
             orig(self, eu);
             if (OnlineManager.lobby is not null && OnlineManager.lobby.gameMode is not MeadowGameMode)
             {
-                if (VoiceEmitter.map.TryGetValue(self, out var emitter))
+                if (AudioManager.voices.TryGetValue(self.abstractCreature.GetOnlineCreature().owner, out var emitter))
                 {
                     emitter.Update();
-                }
-                if (PlaybackDebugger.map.TryGetValue(self, out var pbd))
-                {
-                    pbd.Update();
                 }
             }
         }
@@ -162,36 +158,18 @@ namespace meadowvoice
             {
                 if (self.realizedCreature != null && self.realizedCreature != wasCreature && oe is OnlineCreature oc && oc.TryGetData<SlugcatCustomization>(out var data))
                 {
-                    if (oc.isMine)
+                    if (!oc.isMine)
                     {
-                        if (SteamVoiceChat.myVoiceChat == null)
+                        if (!AudioManager.voices.TryGetValue(oc.owner, out var emitter))
                         {
-                            SteamVoiceChat.myVoiceChat = new SteamVoiceChat(OnlineManager.mePlayer, oc);
+                            AudioManager.voices[oc.owner] = new VoiceEmitter(oc.realizedCreature, oc);
                         }
-                        else
-                        {
-                            if (SteamVoiceChat.myVoiceChat.ownerEntity != oc)
-                            {
-                                SteamVoiceChat.myVoiceChat.ChangeOwningEntity(oc);
-                            }
-                        }
-                        if (SteamVoiceDebug.PLAYBACK)
-                        {
-                            if (!PlaybackDebugger.map.TryGetValue(oc.realizedCreature, out _))
-                            {
-                                new PlaybackDebugger(oc.realizedCreature, oc);
-                            }
-                        }
-                    }
-                    else
+                    } 
+                    else if (AudioManager.Debugging)
                     {
-                        if (!VoiceEmitter.map.TryGetValue(oc.realizedCreature, out var emitter))
+                        if (!AudioManager.voices.TryGetValue(oc.owner, out var emitter))
                         {
-                            new VoiceEmitter(oc.realizedCreature, oc);
-                        }
-                        else
-                        {
-                            emitter.ChangeOwningCreature(oc.realizedCreature);
+                            AudioManager.voices[oc.owner] = new VoiceEmitter(oc.realizedCreature, oc);
                         }
                     }
                 }
@@ -201,21 +179,20 @@ namespace meadowvoice
         private static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
         {
             orig(self);
-            if (OnlineManager.lobby is null || OnlineManager.lobby.gameMode is MeadowGameMode || SteamVoiceChat.myVoiceChat == null)
+            if (OnlineManager.lobby is null || OnlineManager.lobby.gameMode is MeadowGameMode || AudioManager.Instance == null)
             {
                 return;
             }
             SteamVoiceDebug.Update(self);
-            SteamVoiceChat.myVoiceChat.VoiceUpdate();
             if (ModOptions.pushToTalk.Value)
             {
                 if (Input.GetKey(ModOptions.muteKey.Value))
                 {
-                    SteamVoiceChat.myVoiceChat.BeginStream();
+                    AudioManager.Instance.BeginStream();
                 }
                 else
                 {
-                    SteamVoiceChat.myVoiceChat.EndStream();
+                    AudioManager.Instance.EndStream();
                 }
             } 
             else
@@ -224,13 +201,13 @@ namespace meadowvoice
                 {
                     if (!muteKeyHeld)
                     {
-                        if (!SteamVoiceChat.myVoiceChat.recording)
+                        if (!AudioManager.Instance.Recording)
                         {
-                            SteamVoiceChat.myVoiceChat.BeginStream();
+                            AudioManager.Instance.BeginStream();
                         } 
                         else
                         {
-                            SteamVoiceChat.myVoiceChat.EndStream();
+                            AudioManager.Instance.EndStream();
                         }
                         muteKeyHeld = true;
                     }
@@ -239,6 +216,10 @@ namespace meadowvoice
                 {
                     muteKeyHeld = false;
                 }
+            }
+            foreach(var playback in AudioManager.voices)
+            {
+                playback.Value.AudioUpdate();
             }
         }
     }

@@ -95,6 +95,12 @@ namespace meadowvoice
         [SoftRPCMethod]
         public void VoiceChatHandShake(RPCEvent request) => Requested(request); // A soft version of requesting the resource.
 
+        //[SoftRPCMethod (security = RPCSecurity.InResource)]
+        //public void VoiceChatSecret(RPCEvent request, string secret)
+        //{
+        //    this.secrets[request.from] = secret;
+        //}
+
         public void ResolveVoiceChatHandShake(GenericResult requestResult)
         {
             if (requestResult is GenericResult.Ok)

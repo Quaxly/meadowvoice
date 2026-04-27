@@ -45,7 +45,7 @@ namespace meadowvoice
 
             this.micIcon.SetPosition(hud.rainWorld.screenSize.x - SafeBorder, SafeBorder);
 
-            if (SteamVoiceChat.myVoiceChat != null && SteamVoiceChat.myVoiceChat.recording)
+            if (AudioManager.Instance != null && AudioManager.Instance.microphone.recording)
             {
                 fadeColor = 1f;
             }
@@ -54,9 +54,9 @@ namespace meadowvoice
         public override void Draw(float timeStacker)
         {
             base.Draw(timeStacker);
-            if (slatedForDeletion || SteamVoiceChat.myVoiceChat == null) return;
+            if (slatedForDeletion || AudioManager.Instance == null) return;
             this.micIcon.SetPosition(hud.rainWorld.screenSize.x - SafeBorder, SafeBorder);
-            this.micIcon.element = Futile.atlasManager.GetElementWithName(SteamVoiceChat.myVoiceChat.recording ? "recordingon" : "recordingoff"); 
+            this.micIcon.element = Futile.atlasManager.GetElementWithName(AudioManager.Instance.microphone.recording ? "recordingon" : "recordingoff"); 
             this.micIcon.color = Color.Lerp(this.lastDisplayColor, this.displayColor, timeStacker);
             this.micIcon.scale = Mathf.Lerp(this.lastScale, this.scale, timeStacker);
             this.micIcon.alpha = Mathf.Lerp(this.lastAlpha, this.alpha, timeStacker);
@@ -66,7 +66,7 @@ namespace meadowvoice
         {
             base.Update();
             if (OnlineManager.lobby == null) return;
-            if (SteamVoiceChat.myVoiceChat == null)
+            if (AudioManager.Instance == null)
             {
                 slatedForDeletion = true;
                 return;
@@ -97,14 +97,14 @@ namespace meadowvoice
                 }
             }
             bool justChanged = this.state;
-            if (SteamVoiceChat.myVoiceChat.hasVoice) activityTimer = 0;
-            this.state = SteamVoiceChat.myVoiceChat.recording;
+            if (AudioManager.Instance.HasVoice) activityTimer = 0;
+            this.state = AudioManager.Instance.microphone.recording;
             this.lastDisplayColor = this.displayColor;
             this.lastScale = this.scale;
             this.lastAlpha = this.alpha;
-            this.fadeColor = Mathf.Lerp(this.fadeColor, SteamVoiceChat.myVoiceChat.recording ? 1f : 0f, 0.15f);
-            this.displayColor = Color.Lerp(Color.Lerp(Color.red, Color.white, this.fadeColor), Color.black, SteamVoiceChat.myVoiceChat.hasVoice || !SteamVoiceChat.myVoiceChat.recording ? 0 : 0.45f);
-            this.scale = Mathf.Lerp(this.scale, 0.65f, 0.1f);
+            this.fadeColor = Mathf.Lerp(this.fadeColor, AudioManager.Instance.microphone.recording ? 1f : 0f, 0.15f);
+            this.displayColor = Color.Lerp(Color.Lerp(Color.red, Color.white, this.fadeColor), Color.black, AudioManager.Instance.HasVoice || !AudioManager.Instance.microphone.recording ? 0 : 0.45f);
+            this.scale = Mathf.Max(Mathf.Lerp(this.scale, 0.65f, 0.1f), 0.65f);
             if (justChanged != this.state)
             {
                 this.scale = Mathf.Min(scale + 0.30f, 0.95f);
