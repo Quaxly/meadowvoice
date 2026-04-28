@@ -26,8 +26,7 @@ namespace meadowvoice
         {
             On.RainWorldGame.Update += RainWorldGame_Update;
             On.RainWorldGame.ShutDownProcess += RainWorldGame_ShutDownProcess;
-            On.AbstractCreature.Realize += AbstractCreature_Realize;
-            On.Creature.Update += Creature_Update;
+            On.ProcessManager.PreSwitchMainProcess += ProcessManager_PreSwitchMainProcess;
             On.HUD.HUD.InitSinglePlayerHud += HUD_InitSinglePlayerHud;
             On.HUD.HUD.InitMultiplayerHud += HUD_InitMultiplayerHud;
 
@@ -42,8 +41,7 @@ namespace meadowvoice
         {
             On.RainWorldGame.Update -= RainWorldGame_Update;
             On.RainWorldGame.ShutDownProcess -= RainWorldGame_ShutDownProcess;
-            On.AbstractCreature.Realize -= AbstractCreature_Realize;
-            On.Creature.Update -= Creature_Update;
+
             On.HUD.HUD.InitSinglePlayerHud -= HUD_InitSinglePlayerHud;
             On.HUD.HUD.InitMultiplayerHud -= HUD_InitMultiplayerHud;
 
@@ -129,51 +127,20 @@ namespace meadowvoice
             }
         }
 
-        private static void Creature_Update(On.Creature.orig_Update orig, Creature self, bool eu)
-        {
-            orig(self, eu);
-            if (OnlineManager.lobby is not null && OnlineManager.lobby.gameMode is not MeadowGameMode)
-            {
-                if (AudioManager.voices.TryGetValue(self.abstractCreature.GetOnlineCreature().owner, out var emitter))
-                {
-                    emitter.Update();
-                }
-            }
-        }
-
         private static void RainWorldGame_ShutDownProcess(On.RainWorldGame.orig_ShutDownProcess orig, RainWorldGame self)
         {
             orig(self);
             if (OnlineManager.lobby != null)
             {
-                SteamVoiceDebug.RemoveOverlay(self);
+                VoiceDebug.RemoveOverlay(self);
             }
         }
 
-        private static void AbstractCreature_Realize(On.AbstractCreature.orig_Realize orig, AbstractCreature self)
+        private static void ProcessManager_PreSwitchMainProcess(On.ProcessManager.orig_PreSwitchMainProcess orig, ProcessManager self, ProcessManager.ProcessID ID)
         {
-            var wasCreature = self.realizedCreature;
-            orig(self);
-            if (OnlineManager.lobby is not null && OnlineManager.lobby.gameMode is not MeadowGameMode && self.GetOnlineObject(out var oe))
-            {
-                if (self.realizedCreature != null && self.realizedCreature != wasCreature && oe is OnlineCreature oc && oc.TryGetData<SlugcatCustomization>(out var data))
-                {
-                    if (!oc.isMine)
-                    {
-                        if (!AudioManager.voices.TryGetValue(oc.owner, out var emitter))
-                        {
-                            AudioManager.voices[oc.owner] = new VoiceEmitter(oc.realizedCreature, oc);
-                        }
-                    } 
-                    else if (AudioManager.Debugging)
-                    {
-                        if (!AudioManager.voices.TryGetValue(oc.owner, out var emitter))
-                        {
-                            AudioManager.voices[oc.owner] = new VoiceEmitter(oc.realizedCreature, oc);
-                        }
-                    }
-                }
-            }
+            orig(self, ID);
+            AudioManager.Instance.CleanAndRemoveVoices();
+            AudioManager.Instance.myAvatar = null;
         }
 
         private static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
@@ -183,18 +150,18 @@ namespace meadowvoice
             {
                 return;
             }
-            SteamVoiceDebug.Update(self);
+            VoiceDebug.Update(self);
             if (ModOptions.pushToTalk.Value)
             {
                 if (Input.GetKey(ModOptions.muteKey.Value))
                 {
                     AudioManager.Instance.BeginStream();
                 }
-                else
+                else if (AudioManager.Instance.Recording)
                 {
                     AudioManager.Instance.EndStream();
                 }
-            } 
+            }
             else
             {
                 if (Input.GetKey(ModOptions.muteKey.Value))
@@ -217,8 +184,48 @@ namespace meadowvoice
                     muteKeyHeld = false;
                 }
             }
+
+            if (AudioManager.Instance.myAvatar != null)
+            {
+                var roomSession = AudioManager.Instance.myAvatar.joinedResources.FirstOrDefault(x => x is RoomSession) as RoomSession;
+                if (roomSession != null && roomSession.absroom.realizedRoom != null)
+                {
+                    foreach (var player in VoiceChatSession.instance.participants)
+                    {
+                        if (player.isMe || !roomSession.participants.Contains(player)) continue;
+                        if (!AudioManager.voices.TryGetValue(player, out var pb))
+                        {
+                            if (VoiceEmitter.MakeFromPlayer(player, roomSession.absroom.realizedRoom) == null)
+                            {
+                                RainMeadow.RainMeadow.Warn($"Could not create VoiceEmitter for {player}, they may not have a valid avatar.");
+                            }
+                        }
+                        else if (pb.slatedfordeletion)
+                        {
+                            AudioManager.voices.Remove(player);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var playerAvatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
+                {
+                    if (playerAvatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue; // not in game
+                    if (playerAvatar.FindEntity(true) is OnlineCreature opo && opo.apo is AbstractCreature ac)
+                    {
+                        if (opo.owner == OnlineManager.mePlayer)
+                        {
+                            AudioManager.Instance.myAvatar = opo;
+                            break;
+                        }
+                    }
+                }
+            }
+
             foreach(var playback in AudioManager.voices)
             {
+                playback.Value.Update();
                 playback.Value.AudioUpdate();
             }
         }

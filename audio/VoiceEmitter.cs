@@ -33,10 +33,22 @@ namespace meadowvoice
             }
         }
 
-        public int streamPosition;
-        public float vol;
+        public float Pitch
+        {
+            get
+            {
+                return ptch;
+            }
+            set
+            {
+                ptch = value;
+                if (soundA != null) soundA.pitch = value;
+            }
+        }
 
-        public VoiceEmitter(Creature owner, OnlineCreature owningEntity)
+        public int streamPosition;
+
+        public VoiceEmitter(OnlinePlayer owningPlayer, Creature owner, OnlineCreature owningEntity) : base(owningPlayer)
         {
             this.owner = owner;
             this.owningEntity = owningEntity;
@@ -48,19 +60,24 @@ namespace meadowvoice
         {
             owner = newOwner;
 
-            var oldOwner = owningEntity.owner;
-
             owningEntity = newOwner.abstractCreature.GetOnlineCreature();
 
-            if (owningEntity.owner != oldOwner)
+            if (owningEntity.owner != owningPlayer)
             {
                 RainMeadow.RainMeadow.Warn($"VoiceEmitter changed owners, recreating.");
-                AudioManager.voices.Remove(oldOwner);
+                Destroy();
             }
+        }
+
+        public override void Destroy()
+        {
+            base.Destroy();
+            if (soundA != null) soundA.Destroy();
         }
 
         public override void Update()
         {
+            if (slatedfordeletion) return;
             if (owner.room != null)
             {
                 room = owner.room;
@@ -89,11 +106,13 @@ namespace meadowvoice
                     }
                 }
 
-                soundA = new(owner.mainBodyChunk, 1f, 1f);
-                soundA.requireActiveUpkeep = false;
+                soundA = new(owner.mainBodyChunk, 1f, 1f)
+                {
+                    requireActiveUpkeep = true,
+                };
 
                 room.AddObject(soundA);
-                var soundData = new SoundLoader.SoundData(SoundID.Mushroom_Trip_LOOP, 0, 0.5f, 1f, 0.5f, 0.12f);
+                var soundData = new SoundLoader.SoundData(SoundID.Mushroom_Trip_LOOP, 0, 0.5f, 1f, 0.6f, 0.012f);
                 //soundData.dopplerFac = 0.012f;
 
                 soundA.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, soundA, 1f, 1f, false);
@@ -106,16 +125,25 @@ namespace meadowvoice
             base.Update();
         }
 
-        public override void AudioUpdate()
+        public static VoiceEmitter MakeFromPlayer(OnlinePlayer onlinePlayer, Room room)
         {
-            base.AudioUpdate();
+            AudioManager.voices.Remove(onlinePlayer);
 
-            if (stallTimer > 500 && soundA != null)
+            foreach (var playerAvatar in OnlineManager.lobby.playerAvatars.Select(kv => kv.Value))
             {
-                soundA.currentSoundObject.Stop();
-                soundA.slatedForDeletetion = true;
-                soundA = null;
+                if (playerAvatar.type == (byte)OnlineEntity.EntityId.IdType.none) continue; // not in game
+                if (playerAvatar.FindEntity(true) is OnlineCreature opo && opo.apo is AbstractCreature ac)
+                {
+                    if (opo.owner == onlinePlayer && opo.realizedCreature != null && opo.realizedCreature.room == room)
+                    {
+                        VoiceEmitter voiceEmitter = new(onlinePlayer, opo.realizedCreature, opo);
+                        AudioManager.voices[onlinePlayer] = voiceEmitter;
+                        break;
+                    }
+                }
             }
+
+            return null;
         }
     }
 }

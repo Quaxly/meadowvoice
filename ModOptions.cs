@@ -18,6 +18,9 @@ namespace meadowvoice
         public static Configurable<KeyCode> muteKey { get; } = Instance.config.Bind(nameof(muteKey), 
             KeyCode.M, new ConfigurableInfo("Mute/Unmute or Push to Talk key.", null, "", "Mute Key"));
 
+        public static Configurable<bool> noiseSuppression { get; } = Instance.config.Bind(nameof(noiseSuppression),
+            true, new ConfigurableInfo("Remove background noise via RNNoise.", null, "", "Noise Suppression"));
+
         public static Configurable<bool> alertEnemy { get; } = Instance.config.Bind(nameof(alertEnemy),
             true, new ConfigurableInfo("Allows creature AI to detect your voice.", null, "", "Alert Enemy AI"));
 

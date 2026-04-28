@@ -17,11 +17,10 @@ namespace meadowvoice
 
         public bool recording;
 
-        public int streamHead;
         public int micPosition = 0;
 
-        public float[] processBuffer = new float[AudioManager.SamplesPerFrame];
-        public float[] micBuffer = new float[AudioManager.SampleRate];
+        public short[] pcm = new short[AudioManager.SamplesPerFrame];
+        public float[] buffer = new float[AudioManager.SamplesPerFrame];
         public MicrophoneRecorder()
         {
         }
@@ -53,8 +52,8 @@ namespace meadowvoice
 
         private IEnumerator Record()
         {
-            float[] buffer = new float[AudioManager.SamplesPerFrame];
-            short[] pcm = new short[AudioManager.SamplesPerFrame];
+            buffer = new float[AudioManager.SamplesPerFrame];
+            pcm = new short[AudioManager.SamplesPerFrame];
 
             while (recording)
             {
@@ -93,12 +92,6 @@ namespace meadowvoice
 
                 yield return null;
             }
-        }
-
-        public int GetDataLength(int length, int head, int tail)
-        {
-            if (head < tail) return tail - head;
-            return length - head + tail;
         }
     }
 }

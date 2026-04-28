@@ -13,11 +13,8 @@ namespace meadowvoice
 
         public Opus()
         {
-            // 48khz, mono
-
+            // 48khz, mono, VOIP
             Encoder = new(AudioManager.SampleRate, AudioManager.Channels, OpusPredefinedValues.OPUS_APPLICATION_VOIP);
-            //Encoder.SetMaxBandwidth(AudioManager.MaxBandwidth);
-
             Decoder = new(AudioManager.SampleRate, AudioManager.Channels);
         }
 
@@ -155,35 +152,6 @@ namespace meadowvoice
                 RainMeadow.RainMeadow.Warn($"Error decoding: {e.Message}");
             }
             return Array.Empty<float>();
-        }
-
-        public byte[] FloatToBytes(float[] pcmData)
-        {
-            short[] pcm16 = new short[pcmData.Length];
-
-            for(int i = 0; i < pcmData.Length; i++)
-            {
-                var sample = Mathf.Clamp(pcmData[i], -1.0f, 1.0f);
-                pcm16[i] = (short)Mathf.Clamp(sample * 32768f, short.MinValue, short.MaxValue);
-            }
-
-            byte[] pcmBytes = new byte[pcm16.Length * 2];
-            Buffer.BlockCopy(pcm16, 0, pcmBytes, 0, pcmBytes.Length);
-            return pcmBytes;
-        }
-
-        public float[] BytesToFloat(byte[] pcmData)
-        {
-            int sampleCount = pcmData.Length / 2;
-            float[] floats = new float[sampleCount];
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                short sample = (short)(pcmData[i * 2] | (pcmData[i * 2 + 1] << 8));
-                floats[i] = sample / 32768f;
-            }
-
-            return floats;
         }
     }
 }

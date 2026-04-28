@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -57,10 +58,10 @@ namespace meadowvoice
 
         public int voiceTimer;
 
-        public bool HasVoice => voiceTimer <= 30;
+        public bool HasVoice => voiceTimer < 30;
 
         public bool InGame => manager.currentMainLoop is RainWorldGame rainWorldGame;
-        public OnlineEntity MyAvatar => OnlineManager.lobby.playerAvatars?.FirstOrDefault(x => x.Key.isMe).Value?.FindEntity(true);
+        public OnlineEntity myAvatar;
 
         public AudioManager(ProcessManager processManager) : base(processManager, MeadowVoice)
         {
@@ -69,6 +70,18 @@ namespace meadowvoice
             microphone = new();
 
             microphone.OnAudioReady += Microphone_OnAudioReady;
+
+            CustomManager.Subscribe(KEY, this);
+        }
+
+        public void CleanAndRemoveVoices()
+        {
+            var collection = voices.Values.ToList();
+            for (int i = 0; i < collection.Count; i++)
+            {
+                collection[i].Destroy();
+            }
+            voices.Clear();
         }
 
         public override void Update()
@@ -76,7 +89,7 @@ namespace meadowvoice
             base.Update();
             //microphone.Update();
 
-            if (Recording)
+            if (voiceTimer < 30)
             {
                 voiceTimer++;
             }
@@ -125,7 +138,7 @@ namespace meadowvoice
                 DebugVoice(opusData);
             }
 
-            if (InGame && MyAvatar != null && MyAvatar.currentlyJoinedResource is RoomSession roomSession)
+            if (InGame && myAvatar != null && myAvatar.currentlyJoinedResource is RoomSession roomSession)
             {
                 BroadcastVoiceInRoom(roomSession, opusData);
             }
@@ -159,12 +172,34 @@ namespace meadowvoice
             }
         }
 
+        public void SendEncryptedVoice(OnlinePlayer toPlayer, byte[] opusData, string publicKey)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(publicKey)) throw new InvalidOperationException();
+
+                var encryptedData = Crypto.Encrypt(opusData, publicKey);
+
+                if (encryptedData.Length > ushort.MaxValue) throw new InvalidOperationException();
+                if (VoiceChatSession.instance.participants.Contains(toPlayer))
+                {
+                    CustomManager.SendCustomData(toPlayer, KEY, encryptedData, (ushort)encryptedData.Length, NetIO.SendType.Unreliable);
+                }
+            }
+            catch (Exception e)
+            {
+                RainMeadow.RainMeadow.Warn($"There was an error encoding voice data to {toPlayer}: {e.Message}");
+            }
+        }
+
         public void BroadcastVoiceInRoom(RoomSession roomSession, byte[] opusData)
         {
             foreach(var op in roomSession.participants)
             {
-                if (!op.isMe) 
+                if (!op.isMe)
+                {
                     SendVoice(op, opusData);
+                }
             }
         }
 

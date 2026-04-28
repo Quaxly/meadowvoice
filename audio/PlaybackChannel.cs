@@ -1,5 +1,7 @@
-﻿using System;
+﻿using RainMeadow;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -7,6 +9,8 @@ namespace meadowvoice
 {
     internal abstract class PlaybackChannel
     {
+        public OnlinePlayer owningPlayer;
+
         public long lastVoiceTime;
 
         public int stallTimer, voiceTimer;
@@ -14,12 +18,16 @@ namespace meadowvoice
         public Opus opus;
 
         public float[] playbackRing;
-        public int bufferedSamples, bufferLength, writePos, readPos = 0;
+        public int bufferedSamples, bufferLength, writePos, readPos;
+        public bool slatedfordeletion;
+        public float vol = 1f, ptch = 1f;
 
         private readonly object playbackLock = new object();
 
-        public PlaybackChannel()
+        public PlaybackChannel(OnlinePlayer owningPlayer)
         {
+            this.owningPlayer = owningPlayer;
+
             opus = AudioManager.Instance.opus;
             bufferLength = AudioManager.SamplesPerFrame * (AudioManager.Instance.JitterBuffer * 100);
             playbackRing = new float[bufferLength];
@@ -42,6 +50,11 @@ namespace meadowvoice
                 voiceTimer++;
             if (stallTimer < 500)
                 stallTimer++;
+        }
+
+        public virtual void Destroy()
+        {
+            slatedfordeletion = true;
         }
 
         public virtual void AudioUpdate()

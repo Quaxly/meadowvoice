@@ -15,12 +15,32 @@ namespace meadowvoice
         public static string privateKey;
         public static string publicKey;
 
+        public static bool Available => CSP != null;
+
         public static void Init()
         {
             CSP = new(2048);
 
             privateKey = CSP.ToXmlString(true);
             publicKey = CSP.ToXmlString(false);
+        }
+
+        internal static byte[] Decrypt(byte[] data)
+        {
+            using (RSA rsa = RSA.Create())
+            {
+                rsa.FromXmlString(privateKey);
+                return rsa.Decrypt(data, RSAEncryptionPadding.OaepSHA256);
+            }
+        }
+
+        internal static byte[] Encrypt(byte[] data, string key)
+        {
+            using(RSA rsa = RSA.Create())
+            {
+                rsa.FromXmlString(key);
+                return rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA256);
+            }
         }
     }
 }

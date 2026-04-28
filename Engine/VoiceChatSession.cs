@@ -29,10 +29,7 @@ namespace meadowvoice
 
         public override OnlineResource SubresourceFromShortId(ushort shortId) => throw new NotImplementedException();
 
-        protected override void ActivateImpl()
-        {
-            
-        }
+        protected override void ActivateImpl() { }
 
         protected override void AvailableImpl()
         {
@@ -60,10 +57,7 @@ namespace meadowvoice
             }
         }
 
-        protected override void UnavailableImpl()
-        {
-
-        }
+        protected override void UnavailableImpl() { }
 
 
         class VoiceChatSessionState : ResourceState
@@ -86,7 +80,7 @@ namespace meadowvoice
                     if (succession != null)
                     {
                         session.succession = succession.list.Select(id => OnlineManager.players.Where(p => p.id == id).FirstOrDefault()).ToList();
-                        session.UpdateParticipants(session.succession);
+                        session.UpdateParticipants(session.succession.ToList());
                     }
                 }
             }

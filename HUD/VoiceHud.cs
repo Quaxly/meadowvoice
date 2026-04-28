@@ -49,6 +49,8 @@ namespace meadowvoice
             {
                 fadeColor = 1f;
             }
+
+            this.alpha = 0.30f;
         }
 
         public override void Draw(float timeStacker)
