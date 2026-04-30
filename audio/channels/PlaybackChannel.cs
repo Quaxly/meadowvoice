@@ -1,5 +1,6 @@
 ﻿using RainMeadow;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,8 +21,8 @@ namespace meadowvoice
         public Opus opus;
 
         public float[] playbackRing;
-        public int bufferedSamples, bufferLength, writePos, readPos;
-        public bool slatedfordeletion;
+        public int bufferedSamples, bufferLength, writePos, readPos, jitterBuffer;
+        public bool slatedfordeletion, buffering;
         public float vol = 1f, ptch = 1f;
 
         private readonly object playbackLock = new object();
@@ -31,12 +32,16 @@ namespace meadowvoice
             this.owningPlayer = owningPlayer;
 
             opus = AudioManager.Instance.opus;
-            bufferLength = AudioManager.SamplesPerFrame * (AudioManager.Instance.JitterBuffer * 100);
+            jitterBuffer = AudioManager.Instance.JitterBuffer * 1600;
+            bufferLength = AudioManager.SamplesPerFrame * jitterBuffer;
             playbackRing = new float[bufferLength];
         }
 
         public virtual void RecieveAudio(byte[] opusData) 
         {
+            if (slatedfordeletion) return;
+            if (opusData == null || opusData.Length == 0) return;
+
             WritePCM(opus.DecodeToFloat(opusData));
             lastVoiceTime = DateTime.Now.Millisecond;
 
@@ -48,6 +53,8 @@ namespace meadowvoice
 
         public virtual void Update()
         {
+            if (slatedfordeletion) return;
+
             if (voiceTimer < 30) 
                 voiceTimer++;
             if (stallTimer < 500)
@@ -87,15 +94,27 @@ namespace meadowvoice
             {
                 for(int i = 0; i < data.Length; i++)
                 {
-                    if (bufferedSamples > 0)
+                    if (!buffering)
                     {
-                        data[i] = playbackRing[readPos];
-                        readPos = (readPos + 1) % playbackRing.Length;
-                        bufferedSamples--;
+                        if (bufferedSamples > 0)
+                        {
+                            data[i] = playbackRing[readPos];
+                            readPos = (readPos + 1) % playbackRing.Length;
+                            bufferedSamples--;
+                        }
+                        else
+                        {
+                            data[i] = 0f;
+                            buffering = true;
+                        }
                     }
                     else
                     {
                         data[i] = 0f;
+                        if (bufferedSamples >= jitterBuffer)
+                        {
+                            buffering = false;
+                        }
                     }
                 }
             }

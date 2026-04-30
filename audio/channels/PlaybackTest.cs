@@ -12,6 +12,8 @@ namespace meadowvoice
     {
         public ProcessManager manager;
 
+        public string name = "";
+
         public MenuMicrophone.MenuSoundObject soundA;
 
         public PlaybackTest(ProcessManager manager) : base(OnlineManager.mePlayer)
@@ -44,7 +46,7 @@ namespace meadowvoice
 
                 soundA = new MenuMicrophone.MenuSoundObject(manager.menuMic, soundData, true, 0f, 1f, 1f, false); ;
 
-                AudioClip oldClip = clips.FirstOrDefault(x => x.name == $"playbacktest_voiceFeed");
+                AudioClip oldClip = clips.FirstOrDefault(x => x.name == $"{name}playbacktest_voiceFeed");
                 if (oldClip != null)
                 {
                     // destroy stale clip
@@ -53,7 +55,7 @@ namespace meadowvoice
 
                 }
 
-                AudioClip newClip = AudioClip.Create($"playbacktest_voiceFeed", bufferLength, AudioManager.Channels, AudioManager.SampleRate, true, OnAudioRead, OnAudioSetPosition);
+                AudioClip newClip = AudioClip.Create($"{name}playbacktest_voiceFeed", bufferLength, AudioManager.Channels, AudioManager.SampleRate, true, OnAudioRead, OnAudioSetPosition);
 
                 soundA.audioSource.clip = newClip;
 

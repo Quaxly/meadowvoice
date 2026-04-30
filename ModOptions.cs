@@ -53,10 +53,15 @@ namespace meadowvoice
 
             AddCheckBox(pushToTalk);
 
-            AddNewLine(4);
+            AddNewLine(2);
 
             AddCheckBox(alertEnemy);
             DrawCheckBoxes(ref Tabs[tabIndex]);
+
+            AddNewLine(2);
+
+            AddComboBox(selectedDevice, Microphone.devices.Select(x => new ListItem(x, x)).ToList(), "Audio Device");
+            DrawComboBoxes(ref Tabs[tabIndex]);
 
             AddNewLine(4);
 
@@ -77,8 +82,18 @@ namespace meadowvoice
 
             OnDeactivate += () =>
             {
-                playbackTest.Destroy();
-                playbackTest = null;
+                if (StutterTest.playbackTest1 != null && StutterTest.playbackTest2 != null)
+                {
+                    StutterTest.playbackTest1.Destroy();
+                    StutterTest.playbackTest1 = null;
+                    StutterTest.playbackTest2.Destroy();
+                    StutterTest.playbackTest2 = null;
+                }
+                if (playbackTest != null)
+                {
+                    playbackTest.Destroy();
+                    playbackTest = null;
+                }
                 AudioManager.Instance.Recording = wasRecording;
             };
         }
@@ -89,6 +104,25 @@ namespace meadowvoice
 
             button.OnClick += (_) =>
             {
+                if (StutterTest.stutterTest)
+                {
+                    if (StutterTest.playbackTest1 == null &&  StutterTest.playbackTest2 == null)
+                    {
+                        StutterTest.playbackTest1 = new(AudioManager.Instance.manager);
+                        StutterTest.playbackTest2 = new(AudioManager.Instance.manager);
+                        AudioManager.Instance.BeginStream();
+                    }
+                    else
+                    {
+                        StutterTest.playbackTest1.Destroy();
+                        StutterTest.playbackTest1 = null;
+                        StutterTest.playbackTest2.Destroy();
+                        StutterTest.playbackTest2 = null;
+                        AudioManager.Instance.EndStream();
+                    }
+                    return;
+                }
+
                 if (playbackTest == null)
                 {
                     playbackTest = new(AudioManager.Instance.manager);

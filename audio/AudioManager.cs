@@ -138,7 +138,6 @@ namespace meadowvoice
             {
                 ModOptions.playbackTest.RecieveAudio(opusData);
                 voiceTimer = 0;
-                return;
             }
 
             if (OnlineManager.lobby is null || OnlineManager.lobby.gameMode is MeadowGameMode) return;

@@ -12,7 +12,7 @@ namespace meadowvoice
 {
     internal static class VoiceDebug
     {
-        public static bool DEBUG = true; // set this to false to turn off debug overlay
+        public static bool DEBUG = false; // set this to false to turn off debug overlay
         public static bool PLAYBACK = false;
 
         private static FContainer overlay;
@@ -29,7 +29,9 @@ namespace meadowvoice
 
             recievingInfo = VoiceChatSession.instance.participants.ToList();
 
-            foreach(var child in overlay._childNodes)
+            Vector2 screenSize = game.rainWorld.options.ScreenSize;
+
+            foreach (var child in overlay._childNodes)
             {
                 if (child is FLabel label && label.text.StartsWith("Transmitting (Voice)"))
                 {
@@ -63,29 +65,46 @@ namespace meadowvoice
                         label1.color = Color.red;
                     }
                 }
+
+                int offset = 10 * recievingInfo.Count;
+
                 if (child is FLabel label2 && label2.text.StartsWith("Recieving (From)"))
                 {
                     label2.text = "Recieving (From)";
-                    foreach(var s in recievingInfo)
+                    label2.color = new(1f, 0.66f, 0f);
+                    label2.y = screenSize.y - 50 - offset;
+                    foreach (var s in recievingInfo)
                     {
                         AudioManager.voices.TryGetValue(s, out var pb);
                         if (pb != null)
                         {
                             label2.text += "\n" + $"@ {s} - pb {pb} t {pb.voiceTimer} b {pb.bufferedSamples}";
-                            label2.color = pb.voiceTimer < 30 ? new(1f, 0.66f, 0f) : Color.gray;
+                            //label2.color = pb.voiceTimer < 30 ? new(1f, 0.66f, 0f) : Color.gray;
                         }
                         else if (s.isMe)
                         {
                             label2.text += "\n" + $"@ {s} - Self";
-                            label2.color = AudioManager.Instance.voiceTimer < 30 ? new(1f, 0.66f, 0f) : Color.gray;
+                            //label2.color = AudioManager.Instance.voiceTimer < 30 ? new(1f, 0.66f, 0f) : Color.gray;
                         }
                         else
                         {
                             label2.text += "\n" + $"@ {s} - No Playback Channel";
-                            label2.color = Color.red;
+                            //label2.color = Color.red;
                         }
                     }
                 }
+                if (child is FLabel label3 && label3.text.StartsWith("AudioSources"))
+                {
+                    label3.text = "AudioSources";
+                    label3.color = Color.white;
+                    label3.y = screenSize.y - (offset + 20) - (20 * MonoBehaviour.FindObjectsOfType<AudioSource>().Length);
+                    foreach (var s in MonoBehaviour.FindObjectsOfType<AudioSource>())
+                    {
+                        label3.text += "\n" + $"Source - {s.name} ts {s.timeSamples} p {s.isPlaying}";
+
+                    }
+                }
+
             }
         }
 
@@ -106,12 +125,22 @@ namespace meadowvoice
                 x = 5.01f,
                 y = screenSize.y - 30,
             });
+
+            int offset = 10 * recievingInfo.Count;
+
             overlay.AddChild(new FLabel(Custom.GetFont(), "Recieving (From)")
             {
                 alignment = FLabelAlignment.Left,
                 x = 5.01f,
-                y = screenSize.y - 50 - (10 * recievingInfo.Count),
+                y = screenSize.y - 50 - offset,
             });
+
+            //overlay.AddChild(new FLabel(Custom.GetFont(), "AudioSources")
+            //{
+            //    alignment = FLabelAlignment.Left,
+            //    x = 5.01f,
+            //    y = screenSize.y - (offset + 20) - (10 * MonoBehaviour.FindObjectsOfType<AudioSource>().Length),
+            //});
 
             Futile.stage.AddChild(overlay);
         }
