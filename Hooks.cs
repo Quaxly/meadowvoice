@@ -41,7 +41,7 @@ namespace meadowvoice
         {
             On.RainWorldGame.Update -= RainWorldGame_Update;
             On.RainWorldGame.ShutDownProcess -= RainWorldGame_ShutDownProcess;
-
+            On.ProcessManager.PreSwitchMainProcess -= ProcessManager_PreSwitchMainProcess;
             On.HUD.HUD.InitSinglePlayerHud -= HUD_InitSinglePlayerHud;
             On.HUD.HUD.InitMultiplayerHud -= HUD_InitMultiplayerHud;
 

@@ -13,8 +13,10 @@ namespace meadowvoice
     {
         public static ModOptions Instance { get; } = new();
 
+        public static PlaybackTest playbackTest;
+
         public static Configurable<bool> pushToTalk { get; } = Instance.config.Bind(nameof(pushToTalk),
-            true, new ConfigurableInfo("Use push to talk instead of toggling mute/unmute.", null, "", "Push to Talk"));
+            false, new ConfigurableInfo("Use push to talk instead of toggling mute/unmute.", null, "", "Push to Talk"));
         public static Configurable<KeyCode> muteKey { get; } = Instance.config.Bind(nameof(muteKey), 
             KeyCode.M, new ConfigurableInfo("Mute/Unmute or Push to Talk key.", null, "", "Mute Key"));
 
@@ -60,10 +62,49 @@ namespace meadowvoice
 
             DrawKeybinders(muteKey, ref Tabs[tabIndex]);
 
-            AddNewLine(5);
+            AddNewLine(3);
+
+            AddTestButton(ref Tabs[tabIndex]);
+
+            AddNewLine(4);
             
             AddTextLabel("Meadow Voice uses your default microphone.\nIf you change your default microphone you must restart for changes to take effect.", FLabelAlignment.Center);
             DrawTextLabels(ref Tabs[tabIndex]);
+
+            bool wasRecording = AudioManager.Instance.Recording;
+
+            AudioManager.Instance.Recording = false;
+
+            OnDeactivate += () =>
+            {
+                playbackTest.Destroy();
+                playbackTest = null;
+                AudioManager.Instance.Recording = wasRecording;
+            };
+        }
+
+        private void AddTestButton(ref OpTab tab, Vector2? offset = null, bool newline = true)
+        {
+            var button = new OpSimpleButton(new Vector2(57f, Pos.y) + (offset ?? Vector2.zero), new(438f, 50f), Translate("Test Audio"));
+
+            button.OnClick += (_) =>
+            {
+                if (playbackTest == null)
+                {
+                    playbackTest = new(AudioManager.Instance.manager);
+                    AudioManager.Instance.BeginStream();
+                }
+                else
+                {
+                    playbackTest.Destroy();
+                    playbackTest = null;
+                    AudioManager.Instance.EndStream();
+                }
+            };
+
+            tab.AddItems(
+                button
+            );
         }
     }
 }

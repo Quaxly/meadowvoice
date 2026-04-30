@@ -89,6 +89,11 @@ namespace meadowvoice
             base.Update();
             //microphone.Update();
 
+            if (ModOptions.playbackTest != null)
+            {
+                ModOptions.playbackTest.Update();
+            }
+
             if (voiceTimer < 30)
             {
                 voiceTimer++;
@@ -128,8 +133,15 @@ namespace meadowvoice
 
         private void Microphone_OnAudioReady(byte[] opusData)
         {
-            if (OnlineManager.lobby is null || OnlineManager.lobby.gameMode is MeadowGameMode) return;
             if (!Recording) return;
+            if (ModOptions.playbackTest != null)
+            {
+                ModOptions.playbackTest.RecieveAudio(opusData);
+                voiceTimer = 0;
+                return;
+            }
+
+            if (OnlineManager.lobby is null || OnlineManager.lobby.gameMode is MeadowGameMode) return;
 
             voiceTimer = 0;
 

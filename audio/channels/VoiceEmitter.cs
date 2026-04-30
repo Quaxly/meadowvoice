@@ -46,8 +46,6 @@ namespace meadowvoice
             }
         }
 
-        public int streamPosition;
-
         public VoiceEmitter(OnlinePlayer owningPlayer, Creature owner, OnlineCreature owningEntity) : base(owningPlayer)
         {
             this.owner = owner;
@@ -59,7 +57,6 @@ namespace meadowvoice
         public void ChangeOwningCreature(Creature newOwner)
         {
             owner = newOwner;
-
             owningEntity = newOwner.abstractCreature.GetOnlineCreature();
 
             if (owningEntity.owner != owningPlayer)
@@ -71,8 +68,14 @@ namespace meadowvoice
 
         public override void Destroy()
         {
+            if (soundA != null)
+            {
+                soundA.currentSoundObject.Stop();
+                soundA.currentSoundObject.Destroy(); // sound object must be destroyed or audiosource -> clip can overlap between playback channels I think
+                soundA.Destroy();
+                soundA = null;
+            }
             base.Destroy();
-            if (soundA != null) soundA.Destroy();
         }
 
         public override void Update()
@@ -83,9 +86,11 @@ namespace meadowvoice
                 room = owner.room;
             }
 
-            if (soundA != null && (bufferedSamples == 0 || soundA.slatedForDeletetion))
+            if (soundA != null && (bufferedSamples == 0 || soundA.slatedForDeletetion || soundA.room != room))
             {
-                soundA.slatedForDeletetion = true;
+                soundA.currentSoundObject.Stop();
+                soundA.currentSoundObject.Destroy();
+                soundA.Destroy();
                 soundA = null;
             }
 
@@ -112,16 +117,34 @@ namespace meadowvoice
                 };
 
                 room.AddObject(soundA);
-                var soundData = new SoundLoader.SoundData(SoundID.Mushroom_Trip_LOOP, 0, 0.5f, 1f, 0.6f, 0.012f);
+                var soundData = new SoundLoader.SoundData(SoundID.Mushroom_Trip_LOOP, 0, 0.5f, 1f, 0.6f, 0.012f)
+                {
+                    dontAutoPlay = true,
+                };
                 //soundData.dopplerFac = 0.012f;
 
                 soundA.currentSoundObject = new VirtualMicrophone.ObjectSound(mic, soundData, true, soundA, 1f, 1f, false);
 
                 mic.soundObjects.Add(soundA.currentSoundObject);
 
-                soundA.currentSoundObject.audioSource.clip = AudioClip.Create($"{owningEntity.owner.inLobbyId}_voiceFeed", bufferLength, AudioManager.Channels, AudioManager.SampleRate, true, OnAudioRead, OnAudioSetPosition);
+
+                // switch out the audioclip with our custom one
+                // this audioclip will automatically have incoming pcm data written to it
+                AudioClip oldClip = clips.FirstOrDefault(x => x.name == $"{owningPlayer.inLobbyId}_voiceFeed");
+                if (oldClip != null)
+                {
+                    // destroy stale clip
+                    clips.Remove(oldClip);
+                    MonoBehaviour.Destroy(oldClip);
+                    
+                }
+                AudioClip newClip = AudioClip.Create($"{owningPlayer.inLobbyId}_voiceFeed", bufferLength, AudioManager.Channels, AudioManager.SampleRate, true, OnAudioRead, OnAudioSetPosition);
+                clips.Add(newClip);
+
+                soundA.currentSoundObject.audioSource.clip = newClip;
                 soundA.currentSoundObject.Play();
             }
+
             base.Update();
         }
 

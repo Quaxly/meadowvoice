@@ -9,6 +9,8 @@ namespace meadowvoice
 {
     internal abstract class PlaybackChannel
     {
+        public static List<AudioClip> clips = new();
+
         public OnlinePlayer owningPlayer;
 
         public long lastVoiceTime;

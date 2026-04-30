@@ -20,8 +20,8 @@ public abstract class OptionsTemplate : OptionInterface
 
     private float DraggerWithSpacing => DRAGGER_SIZE + 0.25f * SPACING;
 
-    private Vector2 MarginX;
-    private Vector2 Pos;
+    protected Vector2 MarginX;
+    protected Vector2 Pos;
 
 
     private readonly List<float> CoxEndPositions = new();
@@ -57,12 +57,12 @@ public abstract class OptionsTemplate : OptionInterface
         InitializeMarginAndPos();
 
         AddNewLine();
-        AddTextLabel("Mod Requests Volume 1", bigText: true);
+        AddTextLabel("Meadow Voice", bigText: true);
         DrawTextLabels(ref Tabs[tabIndex]);
 
         AddNewLine(0.5f);
         AddTextLabel(Translate("Version") + " " + "1.0.0", FLabelAlignment.Left);
-        AddTextLabel(Translate("by") + " " + "None", FLabelAlignment.Right);
+        AddTextLabel(Translate("by") + " " + "@None", FLabelAlignment.Right);
         DrawTextLabels(ref Tabs[tabIndex]);
 
         AddNewLine();

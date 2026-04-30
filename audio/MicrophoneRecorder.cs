@@ -48,6 +48,8 @@ namespace meadowvoice
                 Plugin.Instance.StopCoroutine(recordCoroutine);
                 recordCoroutine = null;
             }
+
+            RainMeadow.RainMeadow.Info($"Stopped recording on device: {Device}");
         }
 
         private IEnumerator Record()
