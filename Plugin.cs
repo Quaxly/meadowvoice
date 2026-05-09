@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Security.Permissions;
 using BepInEx;
+using UnityEngine;
 
 [assembly: AssemblyVersion(RainMeadow.RainMeadow.MeadowVersionStr)]
 #pragma warning disable CS0618
@@ -39,6 +40,8 @@ namespace meadowvoice
                 Crypto.Init();
 
                 self.processManager.sideProcesses.Add(new AudioManager(self.processManager));
+
+                RainMeadow.RainMeadow.Info($"DSP Buffer Size - {AudioSettings.GetConfiguration().dspBufferSize}");
 
                 IsInit = true;
             }

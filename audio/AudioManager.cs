@@ -155,7 +155,7 @@ namespace meadowvoice
             }
             else if (!InGame)
             {
-                // TODO menu voice chat support.
+                BroadcastVoiceInLobby(opusData);
             }
         }
 
@@ -203,6 +203,25 @@ namespace meadowvoice
             }
         }
 
+        /// <summary>
+        /// Send voice data to everyone in the lobby who can recieve it.
+        /// </summary>
+        /// <param name="opusData"></param>
+        public void BroadcastVoiceInLobby(byte[] opusData)
+        {
+            foreach(var op in VoiceChatSession.instance.participants)
+            {
+                if (!op.isMe)
+                {
+                    SendVoice(op, opusData);
+                }
+            }
+        }
+        /// <summary>
+        /// Send voice data to anyone in the same room session as us
+        /// </summary>
+        /// <param name="roomSession"></param>
+        /// <param name="opusData"></param>
         public void BroadcastVoiceInRoom(RoomSession roomSession, byte[] opusData)
         {
             foreach(var op in roomSession.participants)

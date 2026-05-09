@@ -1,9 +1,12 @@
 ﻿using AssetBundles;
 using meadowvoice;
 using meadowvoice.HUD;
+using Menu;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using RainMeadow;
+using RainMeadow.UI;
+using RainMeadow.UI.Components;
 using RWCustom;
 using System;
 using System.Collections.Generic;
@@ -35,6 +38,12 @@ namespace meadowvoice
             detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.ResourceFromIdentifier)), OnlineManager_ResourceFromIdentifier));
             detours.Add(new Hook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.LeaveLobby)), OnlineManager_LeaveLobby));
             detours.Add(new ILHook(typeof(OnlineManager).GetMethod(nameof(OnlineManager.Update)), OnlineManager_Update));
+
+            detours.Add(new Hook(typeof(ArenaPlayerBox).GetMethod(nameof(ArenaPlayerBox.InitButtons)), ArenaPlayerBox_InitButtons));
+            detours.Add(new Hook(typeof(ArenaPlayerBox).GetMethod(nameof(ArenaPlayerBox.Singal)), ArenaPlayerBox_Signal));
+            detours.Add(new Hook(typeof(ArenaPlayerBox).GetMethod(nameof(ArenaPlayerBox.Update)), ArenaPlayerBox_Update));
+
+            detours.Add(new Hook(typeof(ArenaOnlineLobbyMenu).GetMethod(nameof(ArenaOnlineLobbyMenu.Update)), ArenaOnlineLobbyMenu_Update));
         }
 
         public static void Remove()
@@ -48,9 +57,31 @@ namespace meadowvoice
             foreach (IDetour detour in detours)
             {
                 detour.Undo();
+                detour.Dispose();
             }
 
             detours.Clear();
+        }
+        public static void ArenaPlayerBox_InitButtons(Action<ArenaPlayerBox, bool> orig, ArenaPlayerBox self, bool canKick)
+        {
+            orig(self, canKick);
+            var vch = new ArenaLobbyVoiceHud(self);
+        }
+        public static void ArenaPlayerBox_Update(Action<ArenaPlayerBox> orig, ArenaPlayerBox self)
+        {
+            orig(self);
+            if (ArenaLobbyVoiceHud.map.TryGetValue(self, out var vch))
+            {
+                vch.Update();
+            }
+        }
+        public static void ArenaPlayerBox_Signal(Action<ArenaPlayerBox, MenuObject, string> orig, ArenaPlayerBox self, MenuObject sender, string message)
+        {
+            orig(self, sender, message);
+            if (message == "Voice_Button")
+            {
+                // todo: voice button
+            }
         }
 
         public static OnlineResource OnlineManager_ResourceFromIdentifier(Func<string, OnlineResource> orig, string rid)
@@ -141,6 +172,65 @@ namespace meadowvoice
             orig(self, ID);
             AudioManager.Instance.CleanAndRemoveVoices();
             AudioManager.Instance.myAvatar = null;
+        }
+
+        public static void ArenaOnlineLobbyMenu_Update(Action<ArenaOnlineLobbyMenu> orig, ArenaOnlineLobbyMenu self)
+        {
+            orig(self);
+
+            if (AudioManager.Instance == null || VoiceChatSession.instance == null) return;
+
+            if (ModOptions.pushToTalk.Value)
+            {
+                if (Input.GetKey(ModOptions.muteKey.Value))
+                {
+                    AudioManager.Instance.BeginStream();
+                }
+                else if (AudioManager.Instance.Recording)
+                {
+                    AudioManager.Instance.EndStream();
+                }
+            }
+            else
+            {
+                if (Input.GetKey(ModOptions.muteKey.Value))
+                {
+                    if (!muteKeyHeld)
+                    {
+                        if (!AudioManager.Instance.Recording)
+                        {
+                            AudioManager.Instance.BeginStream();
+                        }
+                        else
+                        {
+                            AudioManager.Instance.EndStream();
+                        }
+                        muteKeyHeld = true;
+                    }
+                }
+                else
+                {
+                    muteKeyHeld = false;
+                }
+            }
+
+            foreach(var player in VoiceChatSession.instance.participants)
+            {
+                if (AudioManager.voices.ContainsKey(player))
+                {
+                    continue;
+                }
+                else
+                {
+                    AudioManager.voices[player] = new MenuEmitter(player, self.manager);
+                }
+            }
+
+            foreach (var playback in AudioManager.voices)
+            {
+                playback.Value.Update();
+                playback.Value.AudioUpdate();
+            }
         }
 
         private static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)

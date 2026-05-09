@@ -73,8 +73,8 @@ namespace meadowvoice
 
             AddNewLine(4);
             
-            AddTextLabel("Meadow Voice uses your default microphone.\nIf you change your default microphone you must restart for changes to take effect.", FLabelAlignment.Center);
-            DrawTextLabels(ref Tabs[tabIndex]);
+            //AddTextLabel("Meadow Voice uses your default microphone.\nIf you change your default microphone you must restart for changes to take effect.", FLabelAlignment.Center);
+            //DrawTextLabels(ref Tabs[tabIndex]);
 
             bool wasRecording = AudioManager.Instance.Recording;
 

@@ -21,7 +21,8 @@ namespace meadowvoice
         public Opus opus;
 
         public float[] playbackRing;
-        public int bufferedSamples, bufferLength, writePos, readPos, jitterBuffer;
+        public int bufferedSamples, bufferLength, writePos, readPos;
+        public int fullRead, fullWrite, underflow;
         public bool slatedfordeletion, buffering;
         public float vol = 1f, ptch = 1f;
 
@@ -32,8 +33,7 @@ namespace meadowvoice
             this.owningPlayer = owningPlayer;
 
             opus = AudioManager.Instance.opus;
-            jitterBuffer = AudioManager.Instance.JitterBuffer * 1600;
-            bufferLength = AudioManager.SamplesPerFrame * jitterBuffer;
+            bufferLength = AudioManager.SamplesPerFrame * AudioManager.Instance.JitterBuffer * 12; // +12 frames of wiggle room
             playbackRing = new float[bufferLength];
         }
 
@@ -79,6 +79,7 @@ namespace meadowvoice
                 for(int i = 0; i < pcmData.Length; i++)
                 {
                     playbackRing[writePos] = pcmData[i];
+                    if (writePos + 1 > playbackRing.Length) fullRead++;
                     writePos = (writePos + 1) % playbackRing.Length;
                     if (bufferedSamples < playbackRing.Length) bufferedSamples++;
                     else readPos = (readPos + 1) % playbackRing.Length;
@@ -99,6 +100,7 @@ namespace meadowvoice
                         if (bufferedSamples > 0)
                         {
                             data[i] = playbackRing[readPos];
+                            if (readPos + 1 > playbackRing.Length) fullRead++;
                             readPos = (readPos + 1) % playbackRing.Length;
                             bufferedSamples--;
                         }
@@ -107,11 +109,16 @@ namespace meadowvoice
                             data[i] = 0f;
                             buffering = true;
                         }
+
+                        if (readPos > writePos && fullRead > fullWrite)
+                        {
+                            underflow++;
+                        }
                     }
                     else
                     {
                         data[i] = 0f;
-                        if (bufferedSamples >= jitterBuffer)
+                        if (bufferedSamples >= AudioManager.SamplesPerFrame * AudioManager.Instance.JitterBuffer)
                         {
                             buffering = false;
                         }
